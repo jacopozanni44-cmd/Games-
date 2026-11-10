@@ -1,7 +1,7 @@
-# Duel di Trivia
+# Groningen vs Vienna
 
 Trivia duels for two, each on your own phone, as an installable offline web app.
-Uses the Firebase project of The Codex Club. No email: each phone joins with a secret code.
+Firebase project games-9afb0. No email: each phone joins with a secret code.
 
 Open https://jacopozanni44-cmd.github.io/Games-/ in Safari, then Share, Add to Home Screen.
 

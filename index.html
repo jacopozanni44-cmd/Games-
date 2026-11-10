@@ -8,8 +8,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Trivia Duel">
-<title>Duel di Trivia</title>
+<meta name="apple-mobile-web-app-title" content="Gro vs Vie">
+<title>Groningen vs Vienna</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -343,7 +343,7 @@ body.withtabs #tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-inde
 </style>
 </head>
 <body>
-<div id="app" class="page"><header class="titlepage"><div class="kicker">Trivia Duel</div><h1>Loading</h1></header></div>
+<div id="app" class="page"><header class="titlepage"><div class="kicker">Groningen vs Vienna</div><h1>Loading</h1></header></div>
 <script>
 /* ---------- surprise for Laura (self-contained) ---------- */
 (() => {
@@ -466,8 +466,8 @@ function installGuide(onContinue) {
   const wrap = el("div", "inst"), card = el("div", "icard");
   const steps = el("ol", "steps"), tabs = el("div", "tabs");
   const STEPS = {
-    ios: ["Tap <b>Share</b> " + SHARE_ICO + " at the bottom of Safari. If you only see <b>&bull;&bull;&bull;</b>, tap that first, then Share.", "Scroll down and tap <b>Add to Home Screen</b> " + ADD_ICO + ", then <b>Add</b>.", "Open <b>Trivia Duel</b> from your home screen and type the secret code there."],
-    android: ["Tap the <b>&#8942;</b> menu at the top right of Chrome.", "Tap <b>Add to Home screen</b> or <b>Install app</b>, then confirm.", "Open <b>Trivia Duel</b> from your home screen and type the secret code there."]
+    ios: ["Tap <b>Share</b> " + SHARE_ICO + " at the bottom of Safari. If you only see <b>&bull;&bull;&bull;</b>, tap that first, then Share.", "Scroll down and tap <b>Add to Home Screen</b> " + ADD_ICO + ", then <b>Add</b>.", "Open <b>Gro vs Vie</b> from your home screen and type the secret code there."],
+    android: ["Tap the <b>&#8942;</b> menu at the top right of Chrome.", "Tap <b>Add to Home screen</b> or <b>Install app</b>, then confirm.", "Open <b>Gro vs Vie</b> from your home screen and type the secret code there."]
   };
   const draw = () => {
     steps.innerHTML = STEPS[os].map((t, i) => '<li><span class="n">' + (i + 1) + "</span><span>" + t + "</span></li>").join("");
@@ -558,16 +558,16 @@ window.giftIsStandalone = isStandalone;
 </script>
 <script type="module">
 /* ------------------------------------------------------------------
-   Sync setup. Same Firebase project as The Codex Club, so the same
-   login works in both apps. Set to null to play on this phone only.
+   Sync setup: Firebase project games-9afb0.
+   Set to null to play on this phone only.
 ------------------------------------------------------------------- */
 const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyBor-6tHmEoTxPDhU5WwK1LlcPMlCs4KGU",
-  authDomain: "book-traking.firebaseapp.com",
-  projectId: "book-traking",
-  storageBucket: "book-traking.firebasestorage.app",
-  messagingSenderId: "808487284957",
-  appId: "1:808487284957:web:de4a4a420a47932cd0eb34"
+  apiKey: "AIzaSyDYQBfSFuNjFoA-C-uU1UBKL2xaHMtWhmk",
+  authDomain: "games-9afb0.firebaseapp.com",
+  projectId: "games-9afb0",
+  storageBucket: "games-9afb0.firebasestorage.app",
+  messagingSenderId: "936911412530",
+  appId: "1:936911412530:web:b8f5fe5c655d6d9c7e8b2b"
 };
 
 const COLORS = ["#E8662A", "#1B8F8A", "#7A4FD6", "#D23C7A", "#2F6FD6", "#C99A1A"];
@@ -2933,7 +2933,7 @@ function renderHome() {
   const dState = !dm || !isDone(dm, me) ? (dm && answers(dm, me).length ? "Finish today's 5" : "Play today's 5") : !isDone(dm, opp) ? "Done. " + pName(opp) + "'s turn" : pts(dm, me) + " : " + pts(dm, opp);
   const tile = (cls, glyph, title, sub, fn) => h("button", { class: "tile " + cls, type: "button", onclick: fn }, h("span", { class: "glyph", "aria-hidden": "true" }, glyph), h("b", {}, title), h("span", {}, sub));
   mount(
-    h("header", { class: "titlepage" }, h("div", { class: "kicker" }, "Duel di Trivia"), h("h1", {}, "Ciao ", h("span", { class: "a" }, pName(me))),
+    h("header", { class: "titlepage" }, h("div", { class: "kicker" }, "Groningen vs Vienna"), h("h1", {}, "Ciao ", h("span", { class: "a" }, pName(me))),
       h("p", {}, opp ? (turn.length ? "You have " + turn.length + (turn.length === 1 ? " game" : " games") + " to play." : waiting ? "Waiting for " + pName(opp) + "." : "Pick a game and send it over.") : "Your partner needs to sign in once before you can play.")),
     h("button", { class: "daily", type: "button", onclick: () => dm && isDone(dm, me) ? go("/duel/" + dm.id) : playDaily() },
       h("div", {}, h("span", { class: "label" }, "Daily challenge"), h("b", {}, dState)),
@@ -3508,7 +3508,7 @@ function renderAuth() {
   };
   drawPick();
   mount(
-    h("header", { class: "titlepage" }, h("div", { class: "kicker" }, "Trivia Duel"), h("h1", {}, h("span", { class: "a" }, "Duel"), " di ", h("span", { class: "b" }, "Trivia")), h("p", {}, "A private game for Jacopo and Laura. No email needed, just your secret code.")),
+    h("header", { class: "titlepage" }, h("div", { class: "kicker" }, "Private game"), h("h1", {}, h("span", { class: "a" }, "Groningen"), " vs ", h("span", { class: "b" }, "Vienna")), h("p", {}, "A private game for Jacopo and Laura. No email needed, just your secret code.")),
     h("form", { class: "panel", onsubmit: submit }, h("span", { class: "label" }, "Who are you?"), pick, field("Secret code", code), btn, msg,
       h("p", { class: "faint", style: { "font-size": "13px" } }, "You only do this once on each phone.")));
 }
@@ -3523,7 +3523,7 @@ function playerForm(title, sub, onSave) {
     h("h2", {}, title), sub ? h("p", { class: "muted" }, sub) : null, field("Name", name), h("div", { class: "field" }, h("span", {}, "Your colour"), sw), h("button", { class: "btn primary", type: "submit" }, "Continue"));
 }
 function renderPrivate() {
-  mount(h("header", { class: "titlepage" }, h("div", { class: "kicker" }, "Trivia Duel"), h("h1", {}, "Private game"),
+  mount(h("header", { class: "titlepage" }, h("div", { class: "kicker" }, "Groningen vs Vienna"), h("h1", {}, "Private game"),
       h("p", {}, "This phone is not unlocked yet. Enter the secret code again.")),
     h("div", { class: "actions" }, h("button", { class: "btn primary", type: "button", onclick: () => DB.signOut() }, "Enter the code")));
 }
@@ -3533,7 +3533,7 @@ function renderNewPlayer() {
 }
 function renderWho() {
   const list = Object.entries(players).sort((a, b) => a[1].created - b[1].created);
-  mount(h("header", { class: "titlepage" }, h("div", { class: "kicker" }, "Trivia Duel"), h("h1", {}, list.length ? "Who's playing?" : "Pick your player"), h("p", {}, "Sync is off, so players live on this phone.")),
+  mount(h("header", { class: "titlepage" }, h("div", { class: "kicker" }, "Groningen vs Vienna"), h("h1", {}, list.length ? "Who's playing?" : "Pick your player"), h("p", {}, "Sync is off, so players live on this phone.")),
     list.length ? h("div", { class: "who-list" }, list.map(([u]) => h("button", { class: "drow", type: "button", onclick: () => DB.use(u) }, avatar(u), h("div", { class: "dmain" }, h("b", {}, pName(u)))))) : null,
     playerForm(list.length ? "Add a player" : "What should we call you?", null, async d => { const u = await DB.newPlayer(d); DB.use(u); }));
 }
@@ -3546,7 +3546,7 @@ function render() {
   if (r !== ui.lastRoute) { ui.lastRoute = r; window.scrollTo(0, 0); }
   if (!user) { document.body.classList.remove("withtabs"); return DB.mode === "local" ? renderWho() : renderAuth(); }
   if (denied) { document.body.classList.remove("withtabs"); return renderPrivate(); }
-  if (!playersLoaded) { document.body.classList.remove("withtabs"); return mount(h("header", { class: "titlepage" }, h("div", { class: "kicker" }, "Trivia Duel"), h("h1", {}, "Loading"))); }
+  if (!playersLoaded) { document.body.classList.remove("withtabs"); return mount(h("header", { class: "titlepage" }, h("div", { class: "kicker" }, "Groningen vs Vienna"), h("h1", {}, "Loading"))); }
   if (!players[user.uid]) { document.body.classList.remove("withtabs"); return renderNewPlayer(); }
   if (r.startsWith("/play/")) { document.body.classList.remove("withtabs"); return renderPlay(r.slice(6)); }
   if (r === "/local") return renderLocal();
