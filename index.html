@@ -1,0 +1,3601 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#F3F1FA" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#14111F" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Trivia Duel">
+<title>Duel di Trivia</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Cormorant+Garamond:ital,wght@1,500;1,600&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: one app column with a bottom tab bar; the question card is the single focal object during play */
+:root{
+  --bg:#F3F1FA; --bg-2:#EAE7F4; --surface:#FFFFFF; --ink:#1E1A33; --ink-2:#5E5878; --ink-3:#8C87A6; --line:#DDD9EC;
+  --p1:#E8662A; --p1-soft:#FDE6DA; --p2:#1B8F8A; --p2-soft:#D6F0EE;
+  --good:#1F9D55; --bad:#D23C4B;
+  --shadow:0 1px 2px rgba(30,26,51,.08),0 8px 22px rgba(30,26,51,.08);
+  --display:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;
+  --body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#14111F; --bg-2:#1A1628; --surface:#1F1B30; --ink:#EFECFA; --ink-2:#B9B3D1; --ink-3:#8A84A6; --line:#332D4B;
+  --p1:#FF8A4F; --p1-soft:#3D2419; --p2:#3CC7BF; --p2-soft:#14332F;
+  --good:#4FD18A; --bad:#FF6B78;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 22px rgba(0,0,0,.35);
+  color-scheme:dark;
+}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+.page{max-width:680px;margin:0 auto;padding:20px 16px 120px;display:flex;flex-direction:column;gap:18px}
+h1,h2,h3{font-family:var(--display);line-height:1.1;margin:0;text-wrap:balance}
+h1{font-weight:800;letter-spacing:-.02em}
+h2{font-weight:800;font-size:22px}
+p{margin:0}
+.muted{color:var(--ink-2)}.faint{color:var(--ink-3)}
+.label{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);font-weight:700}
+:focus-visible{outline:3px solid var(--p2);outline-offset:2px}
+
+.btn{border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:11px 18px;font-weight:700;font-size:15px}
+.btn:hover{border-color:var(--ink-3)}
+.btn.primary{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 40%,var(--line))}
+.btn.wide{width:100%}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.actions{display:flex;flex-wrap:wrap;gap:10px}
+.field{display:flex;flex-direction:column;gap:6px;font-size:14px;color:var(--ink-2);min-width:0}
+.field input{font-size:16px;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;min-width:0}
+.field input:focus{outline:none;border-color:var(--ink)}
+.status{font-size:14px;color:var(--ink-2);min-height:1.4em}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:440px){.two{grid-template-columns:1fr}}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font-weight:500;padding:7px 13px;border-radius:999px;border:1.5px solid var(--line);background:transparent}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip small{opacity:.65;margin-left:4px;font-variant-numeric:tabular-nums}
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden;width:max-content}
+.seg button{border:none;background:transparent;padding:8px 16px;font-weight:700;font-variant-numeric:tabular-nums}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.toggle{display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:500}
+.toggle input{width:20px;height:20px;accent-color:var(--ink);flex:none}
+.toggle.off{opacity:.5;cursor:default}
+.setrow{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between}
+
+/* title */
+.titlepage{padding:6px 0 0}
+.titlepage .kicker{font-family:var(--display);font-weight:800;font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--p1)}
+.titlepage h1{font-size:clamp(34px,9vw,46px);margin-top:4px}
+.titlepage h1 .a{color:var(--p1)}.titlepage h1 .b{color:var(--p2)}
+.titlepage p{color:var(--ink-2);margin-top:6px}
+
+/* home */
+.tally{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px 18px}
+.tally .side{display:flex;flex-direction:column;min-width:0}
+.tally .side:last-child{text-align:right}
+.tally .nm{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tally .n{font-family:var(--display);font-weight:800;font-size:44px;line-height:1;font-variant-numeric:tabular-nums}
+.tally .mid{color:var(--ink-3);font-size:13px;text-align:center}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:440px){.tiles{grid-template-columns:1fr}}
+.tile{border:0;text-align:left;border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:6px;min-height:132px;justify-content:flex-end;position:relative;overflow:hidden}
+.tile.main{background:var(--ink);color:var(--bg)}
+.tile.alt{background:var(--surface);border:1px solid var(--line)}
+.tile.main{grid-column:1/-1}
+.tile.mys{background:linear-gradient(135deg,var(--p2),color-mix(in srgb,var(--p2) 55%,#1E1A33));color:#fff}
+.tile.mys .glyph{opacity:.35}
+.flag{font-size:clamp(84px,26vw,120px);line-height:1.05;text-align:center;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
+.rflag{margin-right:8px;font-size:22px;vertical-align:-2px}
+.guessform{display:flex;gap:8px}
+.guessform input{flex:1;min-width:0;font-size:17px;color:var(--ink);background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:12px 14px}
+.guessform input:focus{outline:none;border-color:var(--p2)}
+.guesses{display:flex;flex-direction:column;gap:8px}
+.guess{display:grid;grid-template-columns:auto 1fr auto 28px;gap:10px;align-items:center;padding:10px 12px;border-radius:12px;border:1px solid var(--line);
+  background:linear-gradient(90deg,color-mix(in srgb,var(--h) 26%,var(--surface)) var(--p),var(--surface) var(--p))}
+.guess.hit{border-color:var(--good);border-width:2px}
+.gflag{font-size:26px;line-height:1}
+.gname{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gdist{font-variant-numeric:tabular-nums;color:var(--ink-2);font-size:14px}
+.garrow{font-size:20px;font-weight:800;text-align:center;color:var(--ink)}
+.gcount{font-family:var(--display);font-size:18px;font-variant-numeric:tabular-nums}
+.reveal{align-items:center;text-align:center}
+.tile.c-bd{background:linear-gradient(135deg,#2F6FD6,#1B3F86);color:#fff}
+.tile.c-hl{background:linear-gradient(135deg,#7A4FD6,#45289A);color:#fff}
+.tile.c-tl{background:linear-gradient(135deg,#C2582A,#7A2E14);color:#fff}
+.tile.c-bd .glyph,.tile.c-hl .glyph,.tile.c-tl .glyph{opacity:.35}
+.tile{min-height:120px}
+.daily{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;border:0;border-radius:18px;padding:16px 18px;background:var(--p1);color:#fff;box-shadow:var(--shadow)}
+.daily .label{color:rgba(255,255,255,.85)}
+.daily b{font-family:var(--display);font-size:22px;font-weight:800;display:block}
+.streak{display:flex;flex-direction:column;align-items:center;background:rgba(255,255,255,.2);border-radius:14px;padding:8px 14px;min-width:64px}
+.streak b{font-size:26px;line-height:1}
+.streak span{font-size:12px}
+.chain{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.node{display:inline-flex;gap:6px;align-items:center;padding:6px 10px;border-radius:999px;background:var(--surface);border:1px solid var(--line);font-weight:600;font-size:15px}
+.node .gflag{font-size:20px}
+.node.end{border:2px solid var(--p2)}
+.node.ghost{opacity:.6;border-style:dashed}
+.link{color:var(--ink-3)}
+.hlgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.hlcard{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:22px 10px;border-radius:18px;border:2px solid var(--line);background:var(--surface);min-height:190px;text-align:center;color:var(--ink);min-width:0}
+.hlcard:hover:not(:disabled){border-color:var(--p1)}
+.hlcard:disabled{cursor:default}
+.hlflag{font-size:clamp(48px,15vw,68px);line-height:1}
+.hlcard b{font-family:var(--display);font-size:19px;overflow-wrap:anywhere}
+.hlval{font-variant-numeric:tabular-nums;font-weight:700;min-height:1.4em;color:var(--ink-2)}
+.hlcard.right{border-color:var(--good);background:color-mix(in srgb,var(--good) 12%,var(--surface))}
+.hlcard.dim{opacity:.75}
+.hlcard.wrong{border-color:var(--bad);opacity:1}
+.tl{display:flex;flex-direction:column;gap:10px}
+.tlev{display:grid;grid-template-columns:34px 1fr;gap:12px;align-items:center;text-align:left;padding:14px;border-radius:14px;border:1.5px solid var(--line);background:var(--surface);font-weight:500;color:var(--ink)}
+.tlev.set{border-color:var(--p1)}
+.tlnum{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-weight:800;background:var(--bg-2)}
+.tlev.set .tlnum{background:var(--p1);color:#fff}
+.tlev.done{grid-template-columns:72px 1fr 22px}
+.tlev.done.ok{border-color:var(--good)}
+.tlev.done.no{border-color:color-mix(in srgb,var(--bad) 55%,var(--line))}
+.tlyear{font-family:var(--display);font-weight:800;font-variant-numeric:tabular-nums}
+.tlev .ic{font-weight:800}.tlev.ok .ic{color:var(--good)}.tlev.no .ic{color:var(--bad)}
+.tlrow{display:grid;grid-template-columns:66px 1fr auto;gap:10px;font-size:14px;align-items:baseline}
+.tlmk{display:flex;gap:6px;font-weight:800}.okc{color:var(--good)}.noc{color:var(--bad)}
+.betrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.betrow .chip:disabled{opacity:.5}
+.betrow .chip[aria-pressed="true"]:disabled{opacity:1}
+.tile b{font-family:var(--display);font-size:24px;font-weight:800;line-height:1.05}
+.tile span{font-size:14px;opacity:.8}
+.tile .glyph{position:absolute;right:14px;top:10px;font-family:var(--display);font-weight:800;font-size:56px;line-height:1;opacity:.18}
+.sect{display:flex;flex-direction:column;gap:10px}
+.sect h3{font-size:18px;font-weight:800}
+
+/* duel rows */
+.drow{width:100%;display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;text-align:left}
+.drow:hover{border-color:var(--ink-3)}
+.av{flex:none;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:#fff;font-family:var(--display);font-weight:800;font-size:17px;background:var(--c,var(--p2))}
+.dmain{flex:1;min-width:0;display:flex;flex-direction:column}
+.dmain b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dmain small{color:var(--ink-3);font-size:13px}
+.dstate{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:2px;font-variant-numeric:tabular-nums;font-weight:700}
+.pill{font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--bg-2);color:var(--ink-2)}
+.pill.turn{background:var(--p1);color:#fff}
+.pill.win{background:color-mix(in srgb,var(--good) 18%,var(--surface));color:var(--good)}
+.pill.loss{background:color-mix(in srgb,var(--bad) 15%,var(--surface));color:var(--bad)}
+.empty{color:var(--ink-3);font-size:15px;padding:6px 2px}
+
+/* quiz */
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.xbtn{width:40px;height:40px;border-radius:50%;border:1.5px solid var(--line);background:var(--surface);font-size:16px}
+.board{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:stretch}
+.pl{border-radius:14px;padding:10px 14px;display:flex;flex-direction:column;gap:2px;border:2px solid transparent;transition:transform .2s,border-color .2s;min-width:0;background:color-mix(in srgb,var(--c) 16%,var(--surface))}
+.pl.r{text-align:right}
+.pl.on{border-color:var(--c);transform:translateY(-2px)}
+.pl .nm{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pl .sc{font-family:var(--display);font-weight:800;font-size:30px;line-height:1;font-variant-numeric:tabular-nums;color:var(--c)}
+.board .mid{display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--ink-3);font-size:13px;text-align:center;font-variant-numeric:tabular-nums}
+.board .mid b{font-family:var(--display);font-size:18px;color:var(--ink)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:22px;display:flex;flex-direction:column;gap:16px;position:relative;overflow:hidden;box-shadow:var(--shadow)}
+.card::before{content:"";position:absolute;inset:0 0 auto 0;height:6px;background:var(--turn)}
+.meta{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.turn{font-weight:700;color:var(--turn)}
+.cat{font-size:12px;text-transform:uppercase;letter-spacing:.08em;font-weight:700;padding:4px 10px;border-radius:999px;background:var(--bg);color:var(--ink-2)}
+.q{font-family:var(--display);font-weight:500;font-size:clamp(21px,5vw,27px);line-height:1.25}
+.timer{height:6px;border-radius:6px;background:var(--line);overflow:hidden}
+.timer i{display:block;height:100%;width:100%;background:var(--turn);transform-origin:left}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:480px){.opts{grid-template-columns:1fr}}
+.opt{text-align:left;padding:14px 16px;border-radius:14px;border:1.5px solid var(--line);background:var(--bg);font-weight:500;display:flex;gap:10px;align-items:baseline;min-width:0}
+.opt .k{font-family:var(--display);font-weight:800;color:var(--ink-3)}
+.opt:hover:not(:disabled){border-color:var(--turn)}
+.opt:disabled{cursor:default}
+.opt.right{border-color:var(--good);background:color-mix(in srgb,var(--good) 14%,var(--surface))}
+.opt.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 14%,var(--surface))}
+.opt.dim{opacity:.5}
+.qfoot{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;min-height:46px}
+.verdict{font-weight:700}
+.verdict.good{color:var(--good)}.verdict.bad{color:var(--bad)}
+.handoff{text-align:center;align-items:center;padding-block:40px}
+.handoff .who{font-family:var(--display);font-weight:800;font-size:clamp(34px,10vw,50px)}
+
+/* duel detail */
+.banner{font-family:var(--display);font-weight:800;font-size:clamp(30px,8vw,40px);text-align:center}
+.review{display:flex;flex-direction:column;gap:10px}
+.rv{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.rv .qq{font-weight:600}
+.rv .ans{font-size:14px;color:var(--ink-2)}
+.rv .ans b{color:var(--good)}
+.marks{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:14px}
+.mk{display:flex;gap:6px;align-items:baseline;min-width:0;padding:6px 8px;border-radius:8px;background:var(--bg)}
+.mk .ic{font-weight:800;flex:none}
+.mk.ok .ic{color:var(--good)}.mk.no .ic{color:var(--bad)}
+.mk span:last-child{min-width:0;overflow-wrap:anywhere}
+.confirm{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media (max-width:440px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.stat b{display:block;font-family:var(--display);font-weight:800;font-size:28px;font-variant-numeric:tabular-nums;line-height:1.1}
+.stat span{font-size:13px;color:var(--ink-3)}
+.bars{display:flex;flex-direction:column;gap:10px}
+.bar{display:grid;grid-template-columns:110px 1fr 46px;gap:10px;align-items:center;font-size:14px}
+.bar .track{height:10px;border-radius:6px;background:var(--bg-2);overflow:hidden}
+.bar .track i{display:block;height:100%;background:var(--c,var(--p2));border-radius:6px}
+.bar .v{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink-2)}
+.swatches{display:flex;gap:10px;flex-wrap:wrap}
+.sw{width:34px;height:34px;border-radius:50%;border:3px solid transparent;background:var(--c)}
+.sw[aria-pressed="true"]{border-color:var(--ink)}
+.qlist{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px}
+.qlist li{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 12px;background:var(--bg);border-radius:10px;font-size:15px}
+.qlist li span{min-width:0;overflow-wrap:anywhere}
+.qlist li small{color:var(--ink-3)}
+.x{border:none;background:none;color:var(--ink-3);font-size:18px;padding:4px 8px}
+.who-list{display:flex;flex-direction:column;gap:10px}
+.whobtn{display:flex;align-items:center;gap:12px;padding:14px;border-radius:14px;border:2px solid var(--line);background:var(--bg);font-weight:700;font-size:17px}
+.whobtn[aria-pressed="true"]{border-color:var(--c);background:color-mix(in srgb,var(--c) 14%,var(--surface))}
+
+/* tab bar, sheets, toast, pull to refresh */
+#tabbar{display:none}
+body.withtabs #tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--bg);border-top:1px solid var(--line);padding:6px max(4px,env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) max(4px,env(safe-area-inset-left));box-shadow:0 -4px 14px rgba(30,26,51,.06)}
+#tabbar button{flex:1;border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;color:var(--ink-3);padding:4px 0}
+#tabbar button[aria-current="page"]{color:var(--p1);font-weight:700}
+#tabbar .ti{font-size:21px;line-height:1;position:relative}
+#tabbar .ti b{position:absolute;top:-5px;right:-12px;background:var(--p1);color:#fff;border-radius:9px;font-size:10px;padding:1px 5px}
+.scrim{position:fixed;inset:0;background:rgba(20,16,32,.45);z-index:40;display:flex;align-items:flex-end;justify-content:center;animation:fade .2s ease}
+.sheet{background:var(--bg);width:100%;max-width:640px;max-height:92vh;overflow:auto;overscroll-behavior:contain;border-radius:18px 18px 0 0;padding:14px 18px calc(24px + env(safe-area-inset-bottom));box-shadow:0 -10px 30px rgba(0,0,0,.25);animation:rise .25s ease;display:flex;flex-direction:column;gap:16px;position:relative}
+@media (min-width:700px){.scrim{align-items:center}.sheet{border-radius:18px}}
+.sheetx{position:absolute;top:12px;right:12px;width:38px;height:38px;border-radius:50%;border:1.5px solid var(--line);background:var(--surface);font-size:15px}
+.sheet h2{padding-right:44px;font-size:26px}
+.toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;z-index:60;box-shadow:var(--shadow);max-width:90vw}
+.ptr{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 8px);z-index:70;transform:translate(-50%,-70px);width:44px;height:44px;border-radius:50%;background:var(--surface);box-shadow:var(--shadow);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--p1);font-size:22px;pointer-events:none}
+.ptr.spin span{animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fade{from{opacity:0}}
+@keyframes rise{from{transform:translateY(40px);opacity:0}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ---------- surprise ---------- */
+
+/* Layout: a 3D stage centred on screen; the box is a real cube, the bouquet spirals up out of it, the note slides in below */
+.giftroot{
+  --bg:#EFE7DA; --bg-2:#FBF7F0; --ink:#1F2A3A; --ink-2:#8A7558; --paper:#FFFDF8; --line:#E3D6C0; --gold:#B8893A; --navy:#1F3A5F;
+  --hand:"Cormorant Garamond","Iowan Old Style","Palatino Linotype",Georgia,serif;
+  --grain:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .35 0 0 0 0 .28 0 0 0 0 .2 0 0 0 .07 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  --body:"Figtree",system-ui,-apple-system,sans-serif;
+  --rib:linear-gradient(90deg,#9E7330,#F3DB9A 45%,#E2BE6A 60%,#9A6D28);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .giftroot{--bg:#14181F; --bg-2:#232A35; --ink:#F3EBDD; --ink-2:#C2AE8E; --line:#3A3A3A; color-scheme:dark}}
+:root[data-theme="dark"] .giftroot{--bg:#14181F; --bg-2:#232A35; --ink:#F3EBDD; --ink-2:#C2AE8E; --line:#3A3A3A; color-scheme:dark}
+.giftroot{position:fixed;inset:0;z-index:90;transition:opacity .5s ease;background:var(--grain),radial-gradient(70% 55% at 50% 38%,var(--bg-2),var(--bg) 75%);color:var(--ink);font-family:var(--body);overflow:hidden;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.gift{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:12px 16px}
+.stage{position:relative;perspective:1000px;perspective-origin:50% 30%;cursor:pointer;outline:none;flex:none}
+.stage:focus-visible{outline:2px solid var(--gold);outline-offset:8px;border-radius:20px}
+.scene{position:absolute;left:50%;transform-style:preserve-3d}
+.boxg,.lid,.bq{position:absolute;left:0;top:0;transform-style:preserve-3d}
+.face{position:absolute;backface-visibility:visible}
+.shadow{position:absolute;left:50%;border-radius:50%;background:radial-gradient(closest-side,rgba(30,30,40,.32),rgba(30,30,40,0));transform:translateX(-50%);transition:opacity .6s ease 1.4s}
+.open .shadow{opacity:.35}
+.boxg{transition:transform .9s cubic-bezier(.5,0,.8,.2)}
+.boxg .face{transition:opacity .45s ease .35s}
+.boxg.gone .face{opacity:0}
+.stage:not(.open) .wob{animation:wob 3s ease-in-out infinite}
+.wob{transform-style:preserve-3d;position:absolute;left:0;top:0}
+@keyframes wob{0%,62%,100%{transform:rotateZ(0)}68%{transform:rotateZ(-3deg) translateY(-4px)}74%{transform:rotateZ(3deg)}80%{transform:rotateZ(-2deg)}86%{transform:rotateZ(1deg)}}
+.lid{transition:transform 1s cubic-bezier(.2,.7,.3,1),opacity .5s ease .55s}
+.bow{position:absolute;left:0;top:0;transform-style:preserve-3d}
+.bow svg{position:absolute;display:block}
+.bq svg{display:block;width:100%;height:100%;filter:drop-shadow(0 16px 22px rgba(40,30,15,.25))}
+.bq{backface-visibility:visible}
+.pl0,.pl1{position:absolute;inset:0}
+.pl1{transform:rotateY(90deg)}
+
+.bq{opacity:0}
+.gletter{position:relative;background:var(--grain),var(--paper);color:#2A2420;border-radius:3px;padding:20px 28px 16px;box-shadow:0 1px 1px rgba(0,0,0,.04),0 14px 30px rgba(40,30,15,.16);
+  transform:translateY(36px) rotate(-1.2deg);opacity:0;transition:transform .9s cubic-bezier(.2,1,.3,1),opacity .6s ease;max-width:310px;text-align:center}
+.gletter::before{content:"";position:absolute;inset:7px;border:1px solid rgba(184,137,58,.5);pointer-events:none}
+.gletter::after{content:"";position:absolute;inset:10px;border:1px solid rgba(184,137,58,.22);pointer-events:none}
+.gletter small{display:block;font:600 10.5px/1 var(--body);letter-spacing:.32em;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
+.gletter p{font-family:var(--hand);font-style:italic;font-size:clamp(27px,7.6vw,32px);font-weight:600;line-height:1.08;margin:0;text-wrap:balance}
+.gletter span{display:block;font-family:var(--hand);font-style:italic;font-size:20px;color:#8A6A3A;margin-top:8px;text-align:right}
+.gift.done .gletter{transform:rotate(-1.2deg);opacity:1}
+.ghint{font-weight:600;color:var(--ink-2);letter-spacing:.3em;text-transform:uppercase;font-size:11px;margin:0;min-height:1.2em}
+.gplay{border:1px solid var(--navy);border-radius:999px;padding:12px 30px;font:600 13px var(--body);letter-spacing:.22em;text-transform:uppercase;background:var(--navy);color:#F6F0E6;opacity:0;transition:opacity .4s ease .6s;cursor:pointer;margin-top:6px}
+.gift.done .gplay{opacity:1}
+.gpetals{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+.gpetals i{position:absolute;top:-30px;width:9px;height:19px;border-radius:50% 50% 50% 50%/70% 70% 30% 30%;background:linear-gradient(180deg,#FFD84F,#E59A00);opacity:.75;animation:fall linear forwards}
+.gpetals i.w{background:linear-gradient(180deg,#fff,#E7E3D6);width:7px;height:16px}
+.gpetals i.b{background:linear-gradient(180deg,#7D97F2,#2D44B0);width:7px;height:12px}
+@keyframes fall{from{transform:translateY(0) rotate(var(--r))}to{transform:translateY(110vh) rotate(calc(var(--r) + 540deg))}}
+
+/* install guide */
+.inst{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:20px 16px;opacity:0;transition:opacity .6s ease}
+.inst.show{opacity:1}
+.icard{position:relative;background:var(--grain),var(--paper);color:#2A2420;border-radius:4px;padding:26px 24px 20px;max-width:360px;width:100%;box-shadow:0 1px 1px rgba(0,0,0,.04),0 18px 40px rgba(40,30,15,.18);transform:translateY(18px);transition:transform .8s cubic-bezier(.2,1,.3,1)}
+.inst.show .icard{transform:none}
+.icard::before{content:"";position:absolute;inset:7px;border:1px solid rgba(184,137,58,.45);pointer-events:none}
+.icard small{display:block;font:600 10.5px/1 var(--body);letter-spacing:.32em;text-transform:uppercase;color:var(--gold);text-align:center}
+.icard h2{font-family:var(--hand);font-style:italic;font-weight:600;font-size:30px;line-height:1.1;margin:10px 0 6px;text-align:center;text-wrap:balance}
+.icard .sub{font-size:14px;color:#6E5E48;text-align:center;margin:0 0 18px;line-height:1.45}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.steps li{display:grid;grid-template-columns:28px 1fr;gap:12px;align-items:start;font-size:15px;line-height:1.4}
+.steps .n{font-family:var(--hand);font-style:italic;font-weight:600;font-size:24px;line-height:1;color:var(--gold);text-align:center}
+.steps b{font-weight:700}
+.ico{display:inline-block;vertical-align:-4px;width:18px;height:18px;margin:0 2px}
+.tabs{display:flex;justify-content:center;gap:6px;margin:0 0 16px}
+.tabs button{font:600 11px var(--body);letter-spacing:.18em;text-transform:uppercase;border:1px solid var(--line);background:transparent;color:#6E5E48;border-radius:999px;padding:6px 12px;cursor:pointer}
+.tabs button[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:#F6F0E6}
+.iactions{display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:20px}
+.iactions .gplay{opacity:1;margin:0}
+.linkish{border:0;background:none;font:500 13px var(--body);color:#8A7558;text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:4px}
+.inote{font-family:var(--hand);font-style:italic;font-size:22px;text-align:center;margin:14px 0 0;color:#2A2420}
+</style>
+</head>
+<body>
+<div id="app" class="page"><header class="titlepage"><div class="kicker">Trivia Duel</div><h1>Loading</h1></header></div>
+<script>
+/* ---------- surprise for Laura (self-contained) ---------- */
+(() => {
+let ROOT = null, OPTS = {};
+
+/* realistic-ish bouquet: sunflowers + field flowers, drawn as SVG */
+function makeRand(seed) { let s = seed; return () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; }; }
+function bouquetSVG() {
+  const R = makeRand(20261110), f = n => n.toFixed(1);
+  const TIE = [160, 335];
+  const defs = `<defs>
+<linearGradient id="pet" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#C96F00"/><stop offset=".35" stop-color="#F2A600"/><stop offset="1" stop-color="#FFD44A"/></linearGradient>
+<linearGradient id="pet2" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#D98400"/><stop offset=".5" stop-color="#FFC21F"/><stop offset="1" stop-color="#FFE27A"/></linearGradient>
+<radialGradient id="sunc" cx=".45" cy=".4" r=".6"><stop offset="0" stop-color="#6B4318"/><stop offset=".55" stop-color="#3A220C"/><stop offset="1" stop-color="#22130A"/></radialGradient>
+<linearGradient id="dp" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#DCD8CC"/><stop offset=".4" stop-color="#FAF9F4"/><stop offset="1" stop-color="#FFFFFF"/></linearGradient>
+<radialGradient id="dc" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#FFE98A"/><stop offset=".6" stop-color="#F2B521"/><stop offset="1" stop-color="#C98410"/></radialGradient>
+<linearGradient id="corn" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#2639A8"/><stop offset="1" stop-color="#6E8DF2"/></linearGradient>
+<radialGradient id="pop" cx=".5" cy=".7" r=".8"><stop offset="0" stop-color="#8E0E08"/><stop offset=".25" stop-color="#D3241A"/><stop offset=".8" stop-color="#F0442E"/><stop offset="1" stop-color="#FF6A4D"/></radialGradient>
+<linearGradient id="leaf" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#2D5E24"/><stop offset=".6" stop-color="#4E8F3C"/><stop offset="1" stop-color="#78B25A"/></linearGradient>
+<linearGradient id="kb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#C69B63"/><stop offset="1" stop-color="#9C7240"/></linearGradient>
+<linearGradient id="kl" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#EBCB98"/><stop offset=".7" stop-color="#D4AC72"/><stop offset="1" stop-color="#BF9258"/></linearGradient>
+<linearGradient id="kr" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D2AA70"/><stop offset=".7" stop-color="#B98B52"/><stop offset="1" stop-color="#9E7442"/></linearGradient>
+<filter id="soft" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#3A2208" flood-opacity=".25"/></filter>
+</defs>`;
+  const stem = (x, y, w, col) => { const mx = (x + TIE[0]) / 2 + (R() - .5) * 20, my = (y + TIE[1]) / 2 + 20; return `<path d="M${f(x)} ${f(y)} Q${f(mx)} ${f(my)} ${TIE[0] + (R() - .5) * 10} ${TIE[1]} L${f(154 + R() * 12)} 438" stroke="${col || "#4C7D34"}" stroke-width="${w}" fill="none" stroke-linecap="round"/>`; };
+  const petal = (L, w) => `M0 0 C${f(w)} ${f(-L * .25)} ${f(w * .75)} ${f(-L * .85)} 0 ${f(-L)} C${f(-w * .75)} ${f(-L * .85)} ${f(-w)} ${f(-L * .25)} 0 0Z`;
+  const sunflower = (cx, cy, r, rot, sy) => {
+    let s = `<g transform="translate(${cx} ${cy}) rotate(${rot}) scale(1 ${sy})" filter="url(#soft)">`;
+    [[22, 1.0, "pet", 0], [20, .9, "pet2", 9]].forEach(([n, k, g, off]) => {
+      for (let i = 0; i < n; i++) { const a = i * 360 / n + off + (R() - .5) * 8, L = r * k * (.9 + R() * .25); s += `<path d="${petal(L, r * .17)}" fill="url(#${g})" transform="rotate(${f(a)}) translate(0 ${f(-r * .3)})"/>`; }
+    });
+    s += `<circle r="${f(r * .44)}" fill="url(#sunc)"/>`;
+    for (let i = 0; i < 70; i++) { const a = i * 2.39996, d = Math.sqrt(i / 70) * r * .4; s += `<circle cx="${f(Math.cos(a) * d)}" cy="${f(Math.sin(a) * d)}" r="${f(r * .022 + R() * r * .01)}" fill="${i % 3 ? "#7A4C1F" : "#A06A2C"}" opacity=".85"/>`; }
+    return s + `<ellipse cx="${f(-r * .12)}" cy="${f(-r * .14)}" rx="${f(r * .16)}" ry="${f(r * .1)}" fill="#fff" opacity=".08"/></g>`;
+  };
+  const daisy = (cx, cy, r, rot, sy) => {
+    let s = `<g transform="translate(${cx} ${cy}) rotate(${rot}) scale(1 ${sy})" filter="url(#soft)">`;
+    for (let i = 0; i < 22; i++) { const a = i * 360 / 22 + (R() - .5) * 6; s += `<path d="${petal(r * (.95 + R() * .15), r * .13)}" fill="url(#dp)" transform="rotate(${f(a)}) translate(0 ${f(-r * .22)})"/>`; }
+    return s + `<circle r="${f(r * .3)}" fill="url(#dc)"/></g>`;
+  };
+  const cornflower = (cx, cy, r, rot) => {
+    let s = `<g transform="translate(${cx} ${cy}) rotate(${rot})" filter="url(#soft)">`;
+    for (let i = 0; i < 11; i++) { const a = i * 360 / 11 + (R() - .5) * 10, L = r * (.9 + R() * .2); s += `<path d="M0 0 L${f(-r * .16)} ${f(-L * .55)} L${f(-r * .3)} ${f(-L)} L${f(-r * .1)} ${f(-L * .88)} L0 ${f(-L * 1.02)} L${f(r * .1)} ${f(-L * .88)} L${f(r * .3)} ${f(-L)} L${f(r * .16)} ${f(-L * .55)}Z" fill="url(#corn)" transform="rotate(${f(a)})"/>`; }
+    return s + `<circle r="${f(r * .22)}" fill="#1E2A6E"/></g>`;
+  };
+  const poppy = (cx, cy, r, rot) => {
+    let s = `<g transform="translate(${cx} ${cy}) rotate(${rot}) scale(1 .88)" filter="url(#soft)">`;
+    [[-.38, -.2], [.38, -.2], [-.3, .3], [.3, .3]].forEach(([dx, dy], i) => s += `<ellipse cx="${f(dx * r)}" cy="${f(dy * r)}" rx="${f(r * .66)}" ry="${f(r * .6)}" fill="url(#pop)" transform="rotate(${i * 20 - 30} ${f(dx * r)} ${f(dy * r)})" opacity=".97"/>`);
+    s += `<circle r="${f(r * .26)}" fill="#1A1410"/>`;
+    for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6; s += `<circle cx="${f(Math.cos(a) * r * .34)}" cy="${f(Math.sin(a) * r * .34)}" r="${f(r * .05)}" fill="#2A2018"/>`; }
+    return s + `<circle r="${f(r * .12)}" fill="#7C8A5A"/></g>`;
+  };
+  const lavender = (x, y, len, ang) => {
+    const dx = Math.sin(ang * Math.PI / 180), dy = -Math.cos(ang * Math.PI / 180); let s = "";
+    for (let i = 0; i < 14; i++) { const t = i / 14, px = x + dx * len * t, py = y + dy * len * t, side = i % 2 ? 1 : -1; s += `<ellipse cx="${f(px + side * 3.2)}" cy="${f(py)}" rx="3.2" ry="5" fill="${i % 3 ? "#8C6BD0" : "#6B4BB4"}" transform="rotate(${f(ang + side * 25)} ${f(px + side * 3.2)} ${f(py)})"/>`; }
+    return s;
+  };
+  const wheat = (x, y, len, ang) => {
+    const dx = Math.sin(ang * Math.PI / 180), dy = -Math.cos(ang * Math.PI / 180); let s = "";
+    for (let i = 0; i < 12; i++) {
+      const t = i / 12, px = x + dx * len * t, py = y + dy * len * t, side = i % 2 ? 1 : -1, gx = px + side * 3.5, gy = py;
+      s += `<line x1="${f(gx)}" y1="${f(gy)}" x2="${f(gx + side * 6 + dx * 10)}" y2="${f(gy + dy * 14)}" stroke="#C9A04A" stroke-width=".8"/>`;
+      s += `<ellipse cx="${f(gx)}" cy="${f(gy)}" rx="3.4" ry="6" fill="${i % 3 ? "#DDB04F" : "#C8963A"}" transform="rotate(${f(ang + side * 22)} ${f(gx)} ${f(gy)})"/>`;
+    }
+    return s;
+  };
+  const gyps = (x, y) => { let s = ""; for (let i = 0; i < 9; i++) { const a = R() * Math.PI * 2, d = 6 + R() * 16, px = x + Math.cos(a) * d, py = y + Math.sin(a) * d * .8; s += `<line x1="${x}" y1="${y + 8}" x2="${f(px)}" y2="${f(py)}" stroke="#7E9B66" stroke-width=".8"/><circle cx="${f(px)}" cy="${f(py)}" r="${f(2 + R() * 1.4)}" fill="#FFFFFF" stroke="#E6E2D6" stroke-width=".5"/>`; } return s; };
+  const leaf = (x, y, L, rot) => `<g transform="translate(${x} ${y}) rotate(${rot})"><path d="M0 0 C${f(L * .45)} ${f(-L * .2)} ${f(L * .4)} ${f(-L * .8)} 0 ${f(-L)} C${f(-L * .4)} ${f(-L * .8)} ${f(-L * .45)} ${f(-L * .2)} 0 0Z" fill="url(#leaf)"/><path d="M0 0 L0 ${f(-L * .95)}" stroke="#2A5220" stroke-width="1.2" opacity=".6"/></g>`;
+
+  const SUN = [[160, 104, 42, 4, .96], [100, 158, 35, -16, .88], [222, 156, 35, 14, .9], [160, 212, 31, -4, .82]];
+  const DAISY = [[56, 140, 15, -20, .9], [266, 136, 15, 18, .9], [114, 222, 14, -8, .85], [208, 226, 14, 10, .85], [212, 82, 12, 20, .9]];
+  const CORN = [[44, 186, 12, -30], [280, 182, 12, 30], [128, 70, 11, -10], [70, 104, 10, -25], [252, 102, 10, 25]];
+  const POP = [[96, 92, 17, -15], [244, 216, 16, 20], [62, 214, 15, -10]];
+  const LAV = [[38, 132, 60, -32], [282, 128, 60, 32], [86, 64, 56, -18], [236, 60, 56, 18]];
+  const WHEAT = [[108, 46, 46, -12], [210, 40, 46, 12], [160, 34, 40, 0], [28, 96, 42, -40], [292, 90, 42, 40]];
+  const GYP = [[70, 126], [252, 152], [140, 158], [186, 64], [40, 160], [290, 160]];
+
+  let back = `<path d="M18 178 Q160 128 302 172 L214 338 L106 338Z" fill="url(#kb)"/><path d="M18 178 Q160 128 302 172" stroke="#E7C995" stroke-width="2" fill="none" opacity=".6"/>`;
+  let stems = "";
+  [...WHEAT, ...LAV].forEach(([x, y, l, a]) => stems += stem(x, y, 1.8, "#7C8F48"));
+  [...CORN, ...POP, ...DAISY].forEach(([x, y]) => stems += stem(x, y, 2, "#567F3A"));
+  SUN.forEach(([x, y]) => stems += stem(x, y + 10, 4.5, "#4A7A32"));
+  const leaves = leaf(70, 262, 58, -58) + leaf(252, 258, 58, 58) + leaf(48, 226, 44, -78) + leaf(274, 222, 44, 76) + leaf(130, 252, 40, -24) + leaf(194, 254, 40, 26);
+  let heads = "";
+  WHEAT.forEach(w => heads += wheat(...w));
+  LAV.forEach(l => heads += lavender(...l));
+  GYP.forEach(g => heads += gyps(...g));
+  CORN.forEach(c => heads += cornflower(...c));
+  DAISY.forEach(d => heads += daisy(...d));
+  POP.forEach(p => heads += poppy(...p));
+  [...SUN].sort((a, b) => a[1] - b[1]).forEach(s => heads += sunflower(...s));
+  const stubs = [148, 154, 160, 166, 172].map(x => `<path d="M${x} 420 L${x + (R() - .5) * 6} 442" stroke="#5E8A43" stroke-width="3.2" stroke-linecap="round"/>`).join("");
+  const front = `<path d="M62 240 Q112 246 166 268 L152 430Z" fill="url(#kl)"/>
+<path d="M258 236 Q210 248 156 268 L170 430Z" fill="url(#kr)"/>
+<path d="M62 240 Q112 246 166 268" stroke="#F3DDB4" stroke-width="2" fill="none" opacity=".8"/>
+<path d="M90 262 Q118 300 140 360" stroke="#B48850" stroke-width="1" fill="none" opacity=".55"/><path d="M226 262 Q200 310 176 370" stroke="#8E663A" stroke-width="1" fill="none" opacity=".5"/><path d="M118 258 Q132 300 146 330" stroke="#F0D7AA" stroke-width="1.2" fill="none" opacity=".6"/>`;
+  const twine = `<path d="M118 334 Q160 346 204 334" stroke="#8A6B45" stroke-width="3" fill="none"/><path d="M118 339 Q160 351 204 339" stroke="#A88458" stroke-width="2" fill="none"/>
+<path d="M160 342 C138 318 118 330 132 346 C140 354 152 348 160 342Z" fill="none" stroke="#8A6B45" stroke-width="3"/><path d="M160 342 C182 318 202 330 188 346 C180 354 168 348 160 342Z" fill="none" stroke="#8A6B45" stroke-width="3"/>
+<path d="M158 344 Q150 366 142 382" stroke="#8A6B45" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M162 344 Q172 364 178 380" stroke="#8A6B45" stroke-width="2.5" fill="none" stroke-linecap="round"/><circle cx="160" cy="342" r="4.5" fill="#7A5C38"/>`;
+  return `<svg viewBox="0 0 320 450" class="bouquet" role="img" aria-label="A bouquet of sunflowers and wild flowers">${defs}${back}${stems}${leaves}${heads}${stubs}${front}${twine}</svg>`;
+}
+
+function bowSVG() {
+  return '<svg viewBox="0 0 230 80" aria-hidden="true"><defs><radialGradient id="loop" cx=".5" cy=".4" r=".7"><stop offset="0" stop-color="#FFF3D1"/><stop offset=".55" stop-color="#E2BE6A"/><stop offset="1" stop-color="#9A6D28"/></radialGradient></defs>' +
+    '<path d="M115 72 C 70 16, 30 40, 58 68 C 72 80, 98 78, 115 72Z" fill="url(#loop)"/><path d="M115 72 C 160 16, 200 40, 172 68 C 158 80, 132 78, 115 72Z" fill="url(#loop)"/>' +
+    '<path d="M115 72 C 92 50, 70 52, 72 64" stroke="#8A6224" stroke-width="1.5" fill="none" opacity=".5"/><path d="M115 72 C 138 50, 160 52, 158 64" stroke="#8A6224" stroke-width="2" fill="none" opacity=".5"/><ellipse cx="115" cy="72" rx="13" ry="8" fill="#C9A052"/></svg>';
+}
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const RX = -18, RY = -32;   // camera tilt of the scene
+function el(tag, cls, html) { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
+function face(w, h, tf, bg) { const f = el("div", "face"); Object.assign(f.style, { width: w + "px", height: h + "px", left: -w / 2 + "px", top: -h / 2 + "px", transform: tf, background: bg }); return f; }
+
+const SHARE_ICO = '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="#2F6FD6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1"/></svg>';
+const ADD_ICO = '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="#2A2420" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg>';
+const isStandalone = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+function installGuide(onContinue) {
+  const root = ROOT;
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  let os = ios ? "ios" : /Android/.test(navigator.userAgent) ? "android" : "ios";
+  const wrap = el("div", "inst"), card = el("div", "icard");
+  const steps = el("ol", "steps"), tabs = el("div", "tabs");
+  const STEPS = {
+    ios: ["Tap <b>Share</b> " + SHARE_ICO + " at the bottom of Safari. If you only see <b>&bull;&bull;&bull;</b>, tap that first, then Share.", "Scroll down and tap <b>Add to Home Screen</b> " + ADD_ICO + ", then <b>Add</b>.", "Open <b>Trivia Duel</b> from your home screen and type the secret code there."],
+    android: ["Tap the <b>&#8942;</b> menu at the top right of Chrome.", "Tap <b>Add to Home screen</b> or <b>Install app</b>, then confirm.", "Open <b>Trivia Duel</b> from your home screen and type the secret code there."]
+  };
+  const draw = () => {
+    steps.innerHTML = STEPS[os].map((t, i) => '<li><span class="n">' + (i + 1) + "</span><span>" + t + "</span></li>").join("");
+    tabs.innerHTML = ""; [["ios", "iPhone"], ["android", "Android"]].forEach(([k, l]) => { const b = el("button", "", l); b.type = "button"; b.setAttribute("aria-pressed", String(k === os)); b.onclick = () => { os = k; draw(); }; tabs.append(b); });
+  };
+  draw();
+  const done = el("button", "gplay", "I've added it"); done.type = "button";
+  const skip = el("button", "linkish", "Continue in the browser instead"); skip.type = "button";
+  const acts = el("div", "iactions"); acts.append(done, skip);
+  card.append(el("small", "", "One more thing"), el("h2", "", "Keep it on your home screen"), el("p", "sub", "So it opens like a real app, works offline and is always one tap away."), tabs, steps, acts);
+  wrap.append(card); root.innerHTML = ""; root.append(wrap);
+  requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add("show")));
+  done.onclick = () => { const later = el("button", "linkish", "Or keep going here"); later.type = "button"; later.onclick = onContinue; acts.replaceWith(el("p", "inote", "Now open it from your home screen. See you there."), later); };
+  skip.onclick = onContinue;
+}
+function build() {
+  const root = ROOT; root.innerHTML = "";
+  const W = Math.min(330, innerWidth * .86, innerHeight * .37), H = W * 1.42;
+  const bw = W * .58, bh = W * .4, bd = W * .58, lh = W * .1, lw = bw * 1.08, ld = bd * 1.08;
+  const rib = (dir) => "var(--rib) center/" + (dir || "16% 100%") + " no-repeat, ";
+  const ov = el("div", "gift"), petals = el("div", "gpetals");
+  const stage = el("div", "stage"); stage.tabIndex = 0; stage.setAttribute("role", "button"); stage.setAttribute("aria-label", "Open your present");
+  Object.assign(stage.style, { width: W + "px", height: H + "px", marginTop: W * .08 + "px" });
+  const shadow = el("div", "shadow"); Object.assign(shadow.style, { width: W * .95 + "px", height: W * .22 + "px", top: H * .8 + "px" });
+  const scene = el("div", "scene"); scene.style.top = H * .62 + "px"; scene.style.transform = "rotateX(" + RX + "deg) rotateY(" + RY + "deg)";
+  // box
+  const boxg = el("div", "boxg"), wob = el("div", "wob");
+  const side = (a, b) => "repeating-linear-gradient(90deg,rgba(255,255,255,.035) 0 1px,transparent 1px 3px), linear-gradient(180deg," + a + "," + b + ")";
+  boxg.append(
+    face(bw, bh, "translateZ(" + bd / 2 + "px)", rib() + side("#25476F", "#17304F")),
+    face(bw, bh, "rotateY(180deg) translateZ(" + bd / 2 + "px)", rib() + side("#1C3A5E", "#122640")),
+    face(bd, bh, "rotateY(90deg) translateZ(" + bw / 2 + "px)", rib() + side("#183255", "#0E2039")),
+    face(bd, bh, "rotateY(-90deg) translateZ(" + bw / 2 + "px)", rib() + side("#21426A", "#142C4A")),
+    face(bw, bd, "rotateX(-90deg) translateZ(" + bh / 2 + "px)", "#0B1A2E"),
+    face(bw * .98, bd * .98, "rotateX(90deg) translateZ(" + (bh / 2 - 2) + "px)", "radial-gradient(closest-side,#060E19,#0F1F33)"));
+  // lid
+  const lid = el("div", "lid"), ly = -bh / 2 - lh / 2 + 2;
+  lid.style.transform = "translateY(" + ly + "px)";
+  const top = "var(--rib) center/14% 100% no-repeat, linear-gradient(0deg,transparent 43%,#9E7330 43%,#F3DB9A 50%,#9A6D28 57%,transparent 57%), linear-gradient(135deg,#32598A,#1F3D63)";
+  lid.append(
+    face(lw, lh, "translateZ(" + ld / 2 + "px)", rib("14% 100%") + side("#2C5080", "#1E3B60")),
+    face(lw, lh, "rotateY(180deg) translateZ(" + ld / 2 + "px)", rib("14% 100%") + side("#24456E", "#183253")),
+    face(ld, lh, "rotateY(90deg) translateZ(" + lw / 2 + "px)", rib("14% 100%") + side("#1F3E66", "#15304F")),
+    face(ld, lh, "rotateY(-90deg) translateZ(" + lw / 2 + "px)", rib("14% 100%") + side("#294C79", "#1B375A")),
+    face(lw, ld, "rotateX(90deg) translateZ(" + lh / 2 + "px)", top));
+  const bow = el("div", "bow"), bwid = lw * .8, bhei = bwid * 80 / 230;
+  [0, 90].forEach(a => { const s = el("div", "", bowSVG()); s.firstChild.style.cssText = "width:" + bwid + "px;height:" + bhei + "px;left:" + -bwid / 2 + "px;top:" + (-bhei + 4) + "px"; s.style.cssText = "position:absolute;transform-style:preserve-3d;transform:translateY(" + -lh / 2 + "px) rotateY(" + a + "deg)"; bow.append(s); });
+  lid.append(bow);
+  wob.append(boxg, lid);
+  // bouquet
+  const qw = W * .86, qh = qw * 450 / 320, svgQ = bouquetSVG(), bq = el("div", "bq", '<div class="pl0">' + svgQ + '</div><div class="pl1">' + svgQ + "</div>");
+  Object.assign(bq.style, { width: qw + "px", height: qh + "px", left: -qw / 2 + "px", top: -qh * .93 + "px" });
+  scene.append(wob, bq); const pl1 = bq.querySelector(".pl1"); pl1.style.opacity = 0;
+  stage.append(shadow, scene);
+  const hint = el("p", "ghint", "Tap to open");
+  const letter = el("div", "gletter", "<small>For Laura</small><p>Ready to get your ass kicked?</p><span>Jacopo</span>");
+  const play = el("button", "gplay", "Let's play"); play.type = "button";
+  ov.append(petals, stage, hint, letter, play); root.append(ov);
+  const unrot = " rotateY(" + -RY + "deg) rotateX(" + -RX + "deg)";
+  const place = (x, y, z, s, ry, rz, op) => { bq.style.transform = "translate3d(" + x + "px," + y + "px," + z + "px)" + unrot + " rotateY(" + ry + "deg) rotateZ(" + rz + "deg) scale(" + s + ")"; bq.style.opacity = op; };
+  place(0, bh * 1.4, 0, .3, 0, 0, 0);
+  let opened = false;
+  const open = () => {
+    if (opened) return; opened = true; stage.classList.add("open"); hint.textContent = "";
+    lid.style.transform = "translate3d(" + -W * .35 + "px," + (ly - W * 1.0) + "px," + W * .2 + "px) rotateX(75deg) rotateZ(-50deg)"; lid.style.opacity = "0";
+    const T = reduce ? 1 : 3200, t0 = performance.now();
+    const frame = now => {
+      const t = Math.min(1, (now - t0) / T), p = 1 - Math.pow(1 - t, 3), rise = 1 - Math.pow(1 - Math.min(1, t * 1.15), 2.4);
+      const lift = (1 - rise) * bh * .9;
+      const s2 = .3 + .7 * rise, spin = (1 - p) * -900;
+      pl1.style.opacity = rise > .35 && t < 1 ? 1 : 0;
+      place(0, bh * .5 + lift - Math.sin(rise * Math.PI) * H * .05, 0, s2, spin, 0, Math.min(1, t * 6));
+      if (t > .5 && !boxg.classList.contains("gone")) { boxg.classList.add("gone"); boxg.style.transform = "translateY(" + bh * 1.4 + "px)"; }
+      if (t < 1) requestAnimationFrame(frame); else { ov.classList.add("done"); setTimeout(() => play.focus(), 900); }
+    };
+    requestAnimationFrame(frame);
+    for (let i = 0; i < 16; i++) { const pe = el("i", i % 5 === 0 ? "w" : i % 7 === 0 ? "b" : ""); pe.style.left = Math.random() * 100 + "%"; pe.style.animationDelay = (1.6 + Math.random() * 2.5).toFixed(2) + "s"; pe.style.animationDuration = (6 + Math.random() * 4).toFixed(2) + "s"; pe.style.setProperty("--r", Math.round(Math.random() * 360) + "deg"); petals.append(pe); }
+  };
+  stage.addEventListener("click", open);
+  stage.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
+  play.onclick = () => { ov.style.transition = "opacity .5s"; ov.style.opacity = "0"; setTimeout(() => (OPTS.preview || isStandalone()) ? finish() : installGuide(finish), 520); };
+}
+
+function finish() { if (!ROOT) return; const r = ROOT; r.style.opacity = "0"; setTimeout(() => r.remove(), 520); ROOT = null; document.documentElement.style.overflow = ""; OPTS.onDone && OPTS.onDone(); }
+window.openGift = opts => { if (ROOT) return; OPTS = opts || {}; ROOT = document.createElement("div"); ROOT.className = "giftroot"; document.body.append(ROOT); document.documentElement.style.overflow = "hidden"; build(); };
+window.giftIsStandalone = isStandalone;
+})();
+</script>
+<script type="module">
+/* ------------------------------------------------------------------
+   Sync setup. Same Firebase project as The Codex Club, so the same
+   login works in both apps. Set to null to play on this phone only.
+------------------------------------------------------------------- */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBor-6tHmEoTxPDhU5WwK1LlcPMlCs4KGU",
+  authDomain: "book-traking.firebaseapp.com",
+  projectId: "book-traking",
+  storageBucket: "book-traking.firebasestorage.app",
+  messagingSenderId: "808487284957",
+  appId: "1:808487284957:web:de4a4a420a47932cd0eb34"
+};
+
+const COLORS = ["#E8662A", "#1B8F8A", "#7A4FD6", "#D23C7A", "#2F6FD6", "#C99A1A"];
+const TIME = 20;
+const BANK = {
+"Geography": [
+[
+"What is the capital of Australia?",
+"Canberra",
+[
+"Sydney",
+"Melbourne",
+"Perth"
+]
+],
+[
+"Which is the longest river in Europe?",
+"Volga",
+[
+"Danube",
+"Rhine",
+"Po"
+]
+],
+[
+"Which country spans the most time zones, counting overseas territories?",
+"France",
+[
+"Russia",
+"United States",
+"China"
+]
+],
+[
+"What is the smallest country in the world by area?",
+"Vatican City",
+[
+"Monaco",
+"San Marino",
+"Liechtenstein"
+]
+],
+[
+"Lake Titicaca sits on the border of Peru and which country?",
+"Bolivia",
+[
+"Chile",
+"Ecuador",
+"Argentina"
+]
+],
+[
+"Mount Kilimanjaro is in which country?",
+"Tanzania",
+[
+"Kenya",
+"Uganda",
+"Ethiopia"
+]
+],
+[
+"What is the capital of Canada?",
+"Ottawa",
+[
+"Toronto",
+"Vancouver",
+"Montreal"
+]
+],
+[
+"Which strait separates Spain from Morocco?",
+"Strait of Gibraltar",
+[
+"Bosphorus",
+"Strait of Messina",
+"Strait of Hormuz"
+]
+],
+[
+"Which Austrian city is the country's capital?",
+"Vienna",
+[
+"Salzburg",
+"Graz",
+"Linz"
+]
+],
+[
+"Which Dutch province was built almost entirely on reclaimed land?",
+"Flevoland",
+[
+"Zeeland",
+"Friesland",
+"Drenthe"
+]
+],
+[
+"What is the capital of Turkey?",
+"Ankara",
+[
+"Istanbul",
+"Izmir",
+"Antalya"
+]
+],
+[
+"What is the capital of New Zealand?",
+"Wellington",
+[
+"Auckland",
+"Christchurch",
+"Queenstown"
+]
+],
+[
+"What is the largest hot desert in the world?",
+"Sahara",
+[
+"Gobi",
+"Kalahari",
+"Arabian Desert"
+]
+],
+[
+"Which is the largest ocean?",
+"Pacific",
+[
+"Atlantic",
+"Indian",
+"Arctic"
+]
+],
+[
+"Which African country has the largest population?",
+"Nigeria",
+[
+"Egypt",
+"Ethiopia",
+"South Africa"
+]
+],
+[
+"Mont Blanc sits on the border between France and which country?",
+"Italy",
+[
+"Switzerland",
+"Austria",
+"Spain"
+]
+],
+[
+"What is the capital of Switzerland?",
+"Bern",
+[
+"Zurich",
+"Geneva",
+"Basel"
+]
+],
+[
+"Which river flows through Vienna?",
+"Danube",
+[
+"Rhine",
+"Inn",
+"Elbe"
+]
+],
+[
+"What is the largest Italian island?",
+"Sicily",
+[
+"Sardinia",
+"Elba",
+"Capri"
+]
+],
+[
+"How many countries share a border with Austria?",
+"8",
+[
+"6",
+"7",
+"9"
+]
+],
+[
+"The Wadden Sea runs along the coasts of the Netherlands, Germany and which country?",
+"Denmark",
+[
+"Belgium",
+"Norway",
+"Poland"
+]
+],
+[
+"What is the capital of Brazil?",
+"Brasília",
+[
+"Rio de Janeiro",
+"São Paulo",
+"Salvador"
+]
+],
+[
+"Which country has the longest coastline in the world?",
+"Canada",
+[
+"Russia",
+"Australia",
+"Norway"
+]
+],
+[
+"Reykjavik is the capital of which country?",
+"Iceland",
+[
+"Norway",
+"Finland",
+"Greenland"
+]
+],
+[
+"Which country has the most natural lakes?",
+"Canada",
+[
+"Finland",
+"Russia",
+"Sweden"
+]
+]
+],
+"Science": [
+[
+"Which element has the chemical symbol Au?",
+"Gold",
+[
+"Silver",
+"Argon",
+"Aluminium"
+]
+],
+[
+"What is the hardest natural mineral?",
+"Diamond",
+[
+"Quartz",
+"Topaz",
+"Corundum"
+]
+],
+[
+"How many bones does an adult human have?",
+"206",
+[
+"198",
+"212",
+"230"
+]
+],
+[
+"Roughly how fast does light travel in a vacuum?",
+"300,000 km/s",
+[
+"30,000 km/s",
+"3,000,000 km/s",
+"150,000 km/s"
+]
+],
+[
+"What is the largest organ of the human body?",
+"Skin",
+[
+"Liver",
+"Lungs",
+"Brain"
+]
+],
+[
+"What is the pH of pure water at room temperature?",
+"7",
+[
+"0",
+"5",
+"14"
+]
+],
+[
+"Which part of the cell produces most of its energy?",
+"Mitochondria",
+[
+"Nucleus",
+"Ribosome",
+"Golgi apparatus"
+]
+],
+[
+"Which gas do plants take in for photosynthesis?",
+"Carbon dioxide",
+[
+"Oxygen",
+"Nitrogen",
+"Hydrogen"
+]
+],
+[
+"Who developed the theory of general relativity?",
+"Albert Einstein",
+[
+"Isaac Newton",
+"Niels Bohr",
+"Max Planck"
+]
+],
+[
+"Which planet is known for the Great Red Spot?",
+"Jupiter",
+[
+"Mars",
+"Saturn",
+"Neptune"
+]
+],
+[
+"Which planet is closest to the Sun?",
+"Mercury",
+[
+"Venus",
+"Mars",
+"Earth"
+]
+],
+[
+"Which element has the chemical symbol Fe?",
+"Iron",
+[
+"Fluorine",
+"Lead",
+"Francium"
+]
+],
+[
+"How many chromosomes does a typical human cell have?",
+"46",
+[
+"23",
+"44",
+"48"
+]
+],
+[
+"Who proposed the theory of evolution by natural selection in On the Origin of Species?",
+"Charles Darwin",
+[
+"Gregor Mendel",
+"Jean-Baptiste Lamarck",
+"Alfred Wegener"
+]
+],
+[
+"What is the most abundant gas in Earth's atmosphere?",
+"Nitrogen",
+[
+"Oxygen",
+"Carbon dioxide",
+"Argon"
+]
+],
+[
+"At sea level, water boils at how many degrees Fahrenheit?",
+"212",
+[
+"100",
+"180",
+"232"
+]
+],
+[
+"Which blood type is known as the universal donor?",
+"O negative",
+[
+"AB positive",
+"A negative",
+"O positive"
+]
+],
+[
+"How many hearts does an octopus have?",
+"3",
+[
+"1",
+"2",
+"8"
+]
+],
+[
+"In which city was Galileo Galilei born?",
+"Pisa",
+[
+"Florence",
+"Padua",
+"Rome"
+]
+],
+[
+"What is the unit of electrical resistance?",
+"Ohm",
+[
+"Volt",
+"Watt",
+"Ampere"
+]
+],
+[
+"Who invented the first electric battery, the voltaic pile?",
+"Alessandro Volta",
+[
+"Luigi Galvani",
+"Michael Faraday",
+"Thomas Edison"
+]
+],
+[
+"Where in the body is the smallest bone?",
+"In the ear",
+[
+"In the hand",
+"In the foot",
+"In the nose"
+]
+],
+[
+"Sunlight on the skin helps the body make which vitamin?",
+"Vitamin D",
+[
+"Vitamin A",
+"Vitamin C",
+"Vitamin B12"
+]
+],
+[
+"Absolute zero is roughly what temperature in Celsius?",
+"−273 °C",
+[
+"−100 °C",
+"−173 °C",
+"−373 °C"
+]
+],
+[
+"What does DNA stand for?",
+"Deoxyribonucleic acid",
+[
+"Dinitrogen nucleic acid",
+"Double nucleic acid",
+"Deoxyribose nitrate acid"
+]
+]
+],
+"History": [
+[
+"In which year did the Berlin Wall fall?",
+"1989",
+[
+"1987",
+"1991",
+"1985"
+]
+],
+[
+"In which year did humans first land on the Moon?",
+"1969",
+[
+"1965",
+"1972",
+"1959"
+]
+],
+[
+"In which year was the Kingdom of Italy proclaimed?",
+"1861",
+[
+"1848",
+"1870",
+"1815"
+]
+],
+[
+"In which year did the Titanic sink?",
+"1912",
+[
+"1905",
+"1918",
+"1923"
+]
+],
+[
+"Who was the first woman to win a Nobel Prize?",
+"Marie Curie",
+[
+"Ada Lovelace",
+"Rosalind Franklin",
+"Florence Nightingale"
+]
+],
+[
+"Who painted the ceiling of the Sistine Chapel?",
+"Michelangelo",
+[
+"Raphael",
+"Leonardo da Vinci",
+"Caravaggio"
+]
+],
+[
+"What did the Dutch abbreviation VOC stand for in English?",
+"Dutch East India Company",
+[
+"Dutch West India Company",
+"Royal Dutch Navy",
+"Amsterdam Stock Exchange"
+]
+],
+[
+"Which ancient wonder stood in Alexandria?",
+"The Lighthouse",
+[
+"The Hanging Gardens",
+"The Colossus",
+"The Mausoleum"
+]
+],
+[
+"The Treaties of Rome, founding the EEC, were signed in which year?",
+"1957",
+[
+"1945",
+"1967",
+"1992"
+]
+],
+[
+"Which empire was ruled from Vienna by the Habsburgs until 1918?",
+"Austro-Hungarian Empire",
+[
+"Ottoman Empire",
+"Holy Roman Empire",
+"Prussian Empire"
+]
+],
+[
+"Who was the first Roman emperor?",
+"Augustus",
+[
+"Julius Caesar",
+"Nero",
+"Caligula"
+]
+],
+[
+"In which year did Columbus first reach the Americas?",
+"1492",
+[
+"1488",
+"1498",
+"1504"
+]
+],
+[
+"In which year did the French Revolution begin?",
+"1789",
+[
+"1776",
+"1804",
+"1815"
+]
+],
+[
+"Who led the Expedition of the Thousand in 1860?",
+"Giuseppe Garibaldi",
+[
+"Camillo Cavour",
+"Giuseppe Mazzini",
+"Vittorio Emanuele II"
+]
+],
+[
+"In which year did the First World War begin?",
+"1914",
+[
+"1912",
+"1916",
+"1918"
+]
+],
+[
+"Which Roman city was buried by Vesuvius in 79 AD?",
+"Pompeii",
+[
+"Ostia",
+"Paestum",
+"Naples"
+]
+],
+[
+"Who was the first human in space?",
+"Yuri Gagarin",
+[
+"Neil Armstrong",
+"John Glenn",
+"Alexei Leonov"
+]
+],
+[
+"In which year did euro coins and banknotes go into circulation?",
+"2002",
+[
+"1999",
+"2000",
+"2004"
+]
+],
+[
+"Who was British Prime Minister for most of the Second World War?",
+"Winston Churchill",
+[
+"Neville Chamberlain",
+"Clement Attlee",
+"Anthony Eden"
+]
+],
+[
+"In which year did Italians vote to become a republic?",
+"1946",
+[
+"1945",
+"1948",
+"1922"
+]
+],
+[
+"In which year was the Magna Carta sealed?",
+"1215",
+[
+"1066",
+"1314",
+"1492"
+]
+],
+[
+"Which Dutch painter cut off part of his own ear?",
+"Vincent van Gogh",
+[
+"Rembrandt",
+"Johannes Vermeer",
+"Piet Mondrian"
+]
+],
+[
+"Who wrote Il Principe?",
+"Niccolò Machiavelli",
+[
+"Dante Alighieri",
+"Francesco Petrarca",
+"Francesco Guicciardini"
+]
+],
+[
+"The Congress of Vienna redrew Europe after the defeat of whom?",
+"Napoleon",
+[
+"Louis XIV",
+"The Ottomans",
+"Bismarck"
+]
+],
+[
+"Which civilisation built Machu Picchu?",
+"Inca",
+[
+"Maya",
+"Aztec",
+"Olmec"
+]
+],
+[
+"Who was the first President of the United States?",
+"George Washington",
+[
+"Thomas Jefferson",
+"John Adams",
+"Abraham Lincoln"
+]
+],
+[
+"The Battle of Waterloo was fought in which present-day country?",
+"Belgium",
+[
+"France",
+"Netherlands",
+"Germany"
+]
+],
+[
+"What is the traditional date for the fall of the Western Roman Empire?",
+"476",
+[
+"410",
+"395",
+"1453"
+]
+],
+[
+"In which year did Constantinople fall to the Ottomans?",
+"1453",
+[
+"1204",
+"1389",
+"1529"
+]
+],
+[
+"Whose assassination in Sarajevo in 1914 set off the First World War?",
+"Archduke Franz Ferdinand",
+[
+"Emperor Franz Joseph",
+"Kaiser Wilhelm II",
+"Tsar Nicholas II"
+]
+],
+[
+"Which Austrian empress was nicknamed Sisi?",
+"Elisabeth",
+[
+"Maria Theresa",
+"Zita",
+"Marie Antoinette"
+]
+],
+[
+"The Siege of Vienna in 1683 ended in defeat for which empire?",
+"Ottoman Empire",
+[
+"Russian Empire",
+"Swedish Empire",
+"Mongol Empire"
+]
+],
+[
+"Who led the Soviet Union during the Second World War?",
+"Joseph Stalin",
+[
+"Vladimir Lenin",
+"Nikita Khrushchev",
+"Leon Trotsky"
+]
+],
+[
+"The D-Day landings of 1944 took place in which region?",
+"Normandy",
+[
+"Brittany",
+"Provence",
+"Flanders"
+]
+],
+[
+"Which Carthaginian general crossed the Alps with elephants?",
+"Hannibal",
+[
+"Hamilcar",
+"Hasdrubal",
+"Scipio"
+]
+],
+[
+"What was Lorenzo de' Medici's nickname?",
+"Il Magnifico",
+[
+"Il Moro",
+"Il Vecchio",
+"Il Saggio"
+]
+],
+[
+"Who was the last Tsar of Russia?",
+"Nicholas II",
+[
+"Alexander III",
+"Peter the Great",
+"Alexander II"
+]
+],
+[
+"Who led the Dutch revolt against Spanish rule in the 1500s?",
+"William of Orange",
+[
+"Philip II",
+"Charles V",
+"Johan de Witt"
+]
+],
+[
+"The Hanseatic League, which Groningen belonged to, traded mainly around which sea?",
+"Baltic Sea",
+[
+"Mediterranean Sea",
+"Black Sea",
+"Adriatic Sea"
+]
+],
+[
+"Which maritime republic was Christopher Columbus from?",
+"Genoa",
+[
+"Venice",
+"Pisa",
+"Amalfi"
+]
+],
+[
+"In which year did the Second World War end in Europe?",
+"1945",
+[
+"1944",
+"1946",
+"1943"
+]
+],
+[
+"Which pharaoh's nearly intact tomb was found in 1922?",
+"Tutankhamun",
+[
+"Ramesses II",
+"Khufu",
+"Akhenaten"
+]
+]
+],
+"Food": [
+[
+"Which cured pork is used in a traditional carbonara?",
+"Guanciale",
+[
+"Pancetta",
+"Bacon",
+"Prosciutto"
+]
+],
+[
+"Which nuts go into pesto alla genovese?",
+"Pine nuts",
+[
+"Walnuts",
+"Almonds",
+"Pistachios"
+]
+],
+[
+"Saffron comes from which plant?",
+"Crocus",
+[
+"Tulip",
+"Marigold",
+"Poppy"
+]
+],
+[
+"Gouda cheese is named after a town in which country?",
+"Netherlands",
+[
+"Belgium",
+"Denmark",
+"Switzerland"
+]
+],
+[
+"What are the biscuits soaked in coffee for tiramisù called?",
+"Savoiardi",
+[
+"Amaretti",
+"Cantucci",
+"Baci di dama"
+]
+],
+[
+"Kimchi is a staple of which country's cuisine?",
+"Korea",
+[
+"Japan",
+"Thailand",
+"Vietnam"
+]
+],
+[
+"Which Italian region is Prosecco mainly made in?",
+"Veneto",
+[
+"Tuscany",
+"Piedmont",
+"Sicily"
+]
+],
+[
+"Which Viennese cake has apricot jam under chocolate icing?",
+"Sachertorte",
+[
+"Linzer torte",
+"Strudel",
+"Kaiserschmarrn"
+]
+],
+[
+"What is the main ingredient of guacamole?",
+"Avocado",
+[
+"Lime",
+"Tomato",
+"Green pepper"
+]
+],
+[
+"What is the spicy green paste served with sushi called?",
+"Wasabi",
+[
+"Matcha",
+"Miso",
+"Yuzu"
+]
+],
+[
+"What is the main ingredient of hummus?",
+"Chickpeas",
+[
+"Lentils",
+"Fava beans",
+"White beans"
+]
+],
+[
+"Which cheese goes on a classic pizza Margherita?",
+"Mozzarella",
+[
+"Provolone",
+"Parmigiano",
+"Ricotta"
+]
+],
+[
+"What gives risotto alla milanese its yellow colour?",
+"Saffron",
+[
+"Turmeric",
+"Egg yolk",
+"Pumpkin"
+]
+],
+[
+"Which Dutch bar snack is a deep-fried ball of meat ragout?",
+"Bitterbal",
+[
+"Stroopwafel",
+"Poffertje",
+"Oliebol"
+]
+],
+[
+"What is inside a stroopwafel?",
+"Caramel syrup",
+[
+"Chocolate",
+"Jam",
+"Honey"
+]
+],
+[
+"Which pasta's name means 'little tongues'?",
+"Linguine",
+[
+"Orecchiette",
+"Farfalle",
+"Tagliatelle"
+]
+],
+[
+"Orecchiette are typical of which region?",
+"Puglia",
+[
+"Sicily",
+"Campania",
+"Calabria"
+]
+],
+[
+"Feta cheese comes from which country?",
+"Greece",
+[
+"Turkey",
+"Cyprus",
+"Bulgaria"
+]
+],
+[
+"A traditional Wiener Schnitzel is made with which meat?",
+"Veal",
+[
+"Pork",
+"Chicken",
+"Beef"
+]
+],
+[
+"Besides Campari and red vermouth, what spirit goes into a Negroni?",
+"Gin",
+[
+"Vodka",
+"Rum",
+"Whisky"
+]
+],
+[
+"The Bellini cocktail was invented in which city?",
+"Venice",
+[
+"Milan",
+"Florence",
+"Rome"
+]
+],
+[
+"Pecorino is made from which animal's milk?",
+"Sheep",
+[
+"Cow",
+"Goat",
+"Buffalo"
+]
+],
+[
+"Which fruit is in a classic tarte Tatin?",
+"Apple",
+[
+"Pear",
+"Peach",
+"Plum"
+]
+],
+[
+"Sushi rice is seasoned mainly with what?",
+"Rice vinegar",
+[
+"Soy sauce",
+"Fish sauce",
+"Sesame oil"
+]
+],
+[
+"Which Austrian dessert is a shredded, caramelised pancake?",
+"Kaiserschmarrn",
+[
+"Palatschinken",
+"Germknödel",
+"Apfelstrudel"
+]
+]
+],
+"Music & Film": [
+[
+"Who composed The Four Seasons?",
+"Antonio Vivaldi",
+[
+"Giuseppe Verdi",
+"Mozart",
+"Puccini"
+]
+],
+[
+"Which Italian band won Eurovision in 2021?",
+"Måneskin",
+[
+"Il Volo",
+"Mahmood",
+"Negramaro"
+]
+],
+[
+"Who directed and starred in La vita è bella?",
+"Roberto Benigni",
+[
+"Paolo Sorrentino",
+"Nanni Moretti",
+"Massimo Troisi"
+]
+],
+[
+"Which was the first non-English-language film to win Best Picture at the Oscars?",
+"Parasite",
+[
+"Roma",
+"Amélie",
+"Life Is Beautiful"
+]
+],
+[
+"Who directed Jaws?",
+"Steven Spielberg",
+[
+"George Lucas",
+"Martin Scorsese",
+"Ridley Scott"
+]
+],
+[
+"Which band was fronted by Freddie Mercury?",
+"Queen",
+[
+"The Who",
+"Genesis",
+"Deep Purple"
+]
+],
+[
+"ABBA came from which country?",
+"Sweden",
+[
+"Norway",
+"Denmark",
+"Finland"
+]
+],
+[
+"How many keys does a standard piano have?",
+"88",
+[
+"76",
+"92",
+"100"
+]
+],
+[
+"Who directed Pulp Fiction?",
+"Quentin Tarantino",
+[
+"David Fincher",
+"Guy Ritchie",
+"Coen brothers"
+]
+],
+[
+"Which Paolo Sorrentino film won the 2014 Oscar for Best Foreign Language Film?",
+"La grande bellezza",
+[
+"Youth",
+"Il Divo",
+"È stata la mano di Dio"
+]
+],
+[
+"Who composed La traviata?",
+"Giuseppe Verdi",
+[
+"Giacomo Puccini",
+"Gioachino Rossini",
+"Gaetano Donizetti"
+]
+],
+[
+"Which composer was born in Salzburg?",
+"Mozart",
+[
+"Beethoven",
+"Haydn",
+"Schubert"
+]
+],
+[
+"Who directed Il buono, il brutto, il cattivo?",
+"Sergio Leone",
+[
+"Sergio Corbucci",
+"Federico Fellini",
+"Dario Argento"
+]
+],
+[
+"Who wrote the score for Il buono, il brutto, il cattivo?",
+"Ennio Morricone",
+[
+"Nino Rota",
+"Nicola Piovani",
+"Riz Ortolani"
+]
+],
+[
+"Who sang Nel blu dipinto di blu (Volare) at Sanremo in 1958?",
+"Domenico Modugno",
+[
+"Adriano Celentano",
+"Lucio Dalla",
+"Gianni Morandi"
+]
+],
+[
+"Who directed La dolce vita?",
+"Federico Fellini",
+[
+"Luchino Visconti",
+"Michelangelo Antonioni",
+"Roberto Rossellini"
+]
+],
+[
+"Which band released the album Abbey Road?",
+"The Beatles",
+[
+"The Rolling Stones",
+"Pink Floyd",
+"The Kinks"
+]
+],
+[
+"Which Austrian-born actor played the Terminator?",
+"Arnold Schwarzenegger",
+[
+"Christoph Waltz",
+"Klaus Maria Brandauer",
+"Dolph Lundgren"
+]
+],
+[
+"Which film has the line \"Here's looking at you, kid\"?",
+"Casablanca",
+[
+"Gone with the Wind",
+"Citizen Kane",
+"Roman Holiday"
+]
+],
+[
+"How many symphonies did Beethoven complete?",
+"9",
+[
+"5",
+"7",
+"12"
+]
+],
+[
+"The Sound of Music is set in which city?",
+"Salzburg",
+[
+"Vienna",
+"Innsbruck",
+"Munich"
+]
+],
+[
+"Who directed Titanic (1997)?",
+"James Cameron",
+[
+"Steven Spielberg",
+"Ridley Scott",
+"Ron Howard"
+]
+],
+[
+"Which instrument was Jimi Hendrix famous for?",
+"Electric guitar",
+[
+"Drums",
+"Bass",
+"Saxophone"
+]
+],
+[
+"Which singer is called the Queen of Pop?",
+"Madonna",
+[
+"Whitney Houston",
+"Kylie Minogue",
+"Britney Spears"
+]
+],
+[
+"Which song festival usually picks Italy's Eurovision entry?",
+"Sanremo",
+[
+"Festivalbar",
+"X Factor Italia",
+"Zecchino d'Oro"
+]
+]
+],
+"Sport": [
+[
+"How many players per side are on the pitch in football?",
+"11",
+[
+"10",
+"9",
+"12"
+]
+],
+[
+"Which two places co-host the 2026 Winter Olympics?",
+"Milano Cortina",
+[
+"Turin Sestriere",
+"Innsbruck Vienna",
+"St. Moritz Davos"
+]
+],
+[
+"Which Grand Slam tennis tournament is played on clay?",
+"Roland-Garros",
+[
+"Wimbledon",
+"US Open",
+"Australian Open"
+]
+],
+[
+"How long is a marathon?",
+"42.195 km",
+[
+"40 km",
+"42 km",
+"45.5 km"
+]
+],
+[
+"What colour jersey does the Tour de France leader wear?",
+"Yellow",
+[
+"Pink",
+"Green",
+"Red"
+]
+],
+[
+"What colour jersey does the Giro d'Italia leader wear?",
+"Pink",
+[
+"Yellow",
+"Blue",
+"White"
+]
+],
+[
+"Which Formula 1 team is based in Maranello?",
+"Ferrari",
+[
+"Alpine",
+"McLaren",
+"Williams"
+]
+],
+[
+"How many rings are on the Olympic flag?",
+"5",
+[
+"4",
+"6",
+"7"
+]
+],
+[
+"In which sport is a score of zero called 'love'?",
+"Tennis",
+[
+"Golf",
+"Cricket",
+"Badminton"
+]
+],
+[
+"Who has won the most Ballon d'Or awards?",
+"Lionel Messi",
+[
+"Cristiano Ronaldo",
+"Michel Platini",
+"Johan Cruyff"
+]
+],
+[
+"How many players per team are on a volleyball court?",
+"6",
+[
+"5",
+"7",
+"9"
+]
+],
+[
+"Which country won the 2006 FIFA World Cup?",
+"Italy",
+[
+"France",
+"Germany",
+"Brazil"
+]
+],
+[
+"Which country won Euro 2020, played in 2021?",
+"Italy",
+[
+"England",
+"Spain",
+"Portugal"
+]
+],
+[
+"Which city hosted the 1960 Summer Olympics?",
+"Rome",
+[
+"Tokyo",
+"Melbourne",
+"Munich"
+]
+],
+[
+"Which Austrian won eight overall Alpine Ski World Cup titles in a row?",
+"Marcel Hirscher",
+[
+"Hermann Maier",
+"Franz Klammer",
+"Benjamin Raich"
+]
+],
+[
+"How many holes are in a standard round of golf?",
+"18",
+[
+"9",
+"12",
+"20"
+]
+],
+[
+"Jannik Sinner grew up in which part of Italy?",
+"South Tyrol",
+[
+"Lombardy",
+"Veneto",
+"Aosta Valley"
+]
+],
+[
+"Which club has won the most European Cups and Champions Leagues?",
+"Real Madrid",
+[
+"AC Milan",
+"Bayern Munich",
+"Liverpool"
+]
+],
+[
+"In which Winter Olympic sport do the Netherlands win most of their medals?",
+"Speed skating",
+[
+"Ski jumping",
+"Bobsleigh",
+"Biathlon"
+]
+],
+[
+"How long is an Olympic swimming pool?",
+"50 m",
+[
+"25 m",
+"33 m",
+"100 m"
+]
+],
+[
+"In which sport did Valentino Rossi win his world titles?",
+"Motorcycle racing",
+[
+"Formula 1",
+"Rally",
+"Cycling"
+]
+],
+[
+"How many points is a basket from beyond the arc worth?",
+"3",
+[
+"2",
+"4",
+"1"
+]
+],
+[
+"Which country has won the most FIFA World Cups?",
+"Brazil",
+[
+"Germany",
+"Italy",
+"Argentina"
+]
+],
+[
+"How many points is a touchdown worth in American football?",
+"6",
+[
+"3",
+"5",
+"7"
+]
+],
+[
+"What is the most sets a men's Grand Slam singles match can have?",
+"5",
+[
+"3",
+"4",
+"7"
+]
+]
+],
+"Words": [
+[
+"What does the Dutch word 'gezellig' describe?",
+"A cosy, warm atmosphere",
+[
+"Rainy weather",
+"Being late",
+"Cycling fast"
+]
+],
+[
+"What does the German word 'Schadenfreude' mean?",
+"Joy at someone else's bad luck",
+[
+"Fear of missing out",
+"Homesickness",
+"Joy of travel"
+]
+],
+[
+"The greeting 'ciao' comes from a Venetian phrase meaning what?",
+"Your servant",
+[
+"Good day",
+"My friend",
+"God be with you"
+]
+],
+[
+"Which language has the most native speakers?",
+"Mandarin Chinese",
+[
+"Spanish",
+"English",
+"Hindi"
+]
+],
+[
+"How many official national languages does Switzerland have?",
+"4",
+[
+"2",
+"3",
+"5"
+]
+],
+[
+"Who created Esperanto?",
+"L. L. Zamenhof",
+[
+"J. R. R. Tolkien",
+"Noah Webster",
+"Wilhelm von Humboldt"
+]
+],
+[
+"What does the Latin 'carpe diem' mean?",
+"Seize the day",
+[
+"Love conquers all",
+"Know yourself",
+"Slowly but surely"
+]
+],
+[
+"In Austria, what is a 'Paradeiser'?",
+"A tomato",
+[
+"A potato",
+"An apricot",
+"A cabbage"
+]
+],
+[
+"Which letter is the most common in English?",
+"E",
+[
+"A",
+"T",
+"S"
+]
+],
+[
+"How do you say 'thank you' in Dutch?",
+"Dank je",
+[
+"Danke",
+"Tak",
+"Takk"
+]
+],
+[
+"What does 'spaghetti' literally mean?",
+"Little strings",
+[
+"Little worms",
+"Little tongues",
+"Little ribbons"
+]
+],
+[
+"What is a word that reads the same backwards called?",
+"A palindrome",
+[
+"An anagram",
+"A homophone",
+"An acronym"
+]
+]
+],
+"Eurovision": [
+[
+"Which group won Eurovision 1974 with Waterloo?",
+"ABBA",
+[
+"Brotherhood of Man",
+"Bucks Fizz",
+"Teach-In"
+]
+],
+[
+"In which English town did ABBA win Eurovision?",
+"Brighton",
+[
+"London",
+"Liverpool",
+"Birmingham"
+]
+],
+[
+"Who won Eurovision 2014 for Austria with Rise Like a Phoenix?",
+"Conchita Wurst",
+[
+"Zoë",
+"Cesár Sampson",
+"Nathan Trent"
+]
+],
+[
+"Which song won Eurovision 2025 for Austria?",
+"Wasted Love",
+[
+"The Code",
+"Tattoo",
+"Rise Like a Phoenix"
+]
+],
+[
+"Which city hosted Eurovision 2026?",
+"Vienna",
+[
+"Basel",
+"Graz",
+"Salzburg"
+]
+],
+[
+"Loreen won Eurovision twice. Which song gave her the second win in 2023?",
+"Tattoo",
+[
+"Arcade",
+"Euphoria",
+"Heroes"
+]
+],
+[
+"Who won Eurovision 2019 for the Netherlands?",
+"Duncan Laurence",
+[
+"Douwe Bob",
+"S10",
+"Waylon"
+]
+],
+[
+"What was the name of Måneskin's winning song in 2021?",
+"Zitti e buoni",
+[
+"Beggin'",
+"Brividi",
+"Soldi"
+]
+],
+[
+"Nemo won Eurovision 2024 for which country?",
+"Switzerland",
+[
+"Croatia",
+"Austria",
+"Ukraine"
+]
+],
+[
+"Which Finnish artist came second in 2023 with Cha Cha Cha?",
+"Käärijä",
+[
+"Lordi",
+"Blind Channel",
+"Erika Vikman"
+]
+],
+[
+"Lordi won in 2006 with Hard Rock Hallelujah for which country?",
+"Finland",
+[
+"Norway",
+"Sweden",
+"Iceland"
+]
+],
+[
+"Who won Eurovision 2022 for Ukraine with Stefania?",
+"Kalush Orchestra",
+[
+"Go_A",
+"Jamala",
+"Ruslana"
+]
+],
+[
+"Céline Dion won Eurovision 1988 representing which country?",
+"Switzerland",
+[
+"France",
+"Belgium",
+"Luxembourg"
+]
+],
+[
+"Which of these countries is NOT one of the Big Five?",
+"Netherlands",
+[
+"Italy",
+"Spain",
+"Germany"
+]
+],
+[
+"What is the most points a single jury can give one song?",
+"12",
+[
+"10",
+"15",
+"8"
+]
+],
+[
+"Which country won Eurovision 2023, held in Liverpool?",
+"Sweden",
+[
+"Finland",
+"Israel",
+"Italy"
+]
+],
+[
+"Who sang Volevo essere un duro for Italy at Eurovision 2025?",
+"Lucio Corsi",
+[
+"Olly",
+"Mahmood",
+"Marco Mengoni"
+]
+],
+[
+"Which Italian city hosted Eurovision 2022?",
+"Turin",
+[
+"Rome",
+"Milan",
+"Sanremo"
+]
+],
+[
+"Gigliola Cinquetti won for Italy in 1964 with which song?",
+"Non ho l'età",
+[
+"Insieme: 1992",
+"Volare",
+"Fai rumore"
+]
+],
+[
+"Toto Cutugno won for Italy in 1990 with which song?",
+"Insieme: 1992",
+[
+"Non ho l'età",
+"L'italiano",
+"Soldi"
+]
+],
+[
+"Where was the very first Eurovision held in 1956?",
+"Lugano",
+[
+"Geneva",
+"Paris",
+"Brussels"
+]
+],
+[
+"Which country outside Europe has competed since 2015?",
+"Australia",
+[
+"Canada",
+"United States",
+"Japan"
+]
+]
+],
+"K-pop": [
+[
+"What are BTS fans called?",
+"ARMY",
+[
+"BLINK",
+"ONCE",
+"MY"
+]
+],
+[
+"What are BLACKPINK fans called?",
+"BLINK",
+[
+"ARMY",
+"ONCE",
+"CARAT"
+]
+],
+[
+"What are TWICE fans called?",
+"ONCE",
+[
+"BLINK",
+"STAY",
+"ARMY"
+]
+],
+[
+"How many members does BTS have?",
+"7",
+[
+"5",
+"6",
+"9"
+]
+],
+[
+"How many members does BLACKPINK have?",
+"4",
+[
+"3",
+"5",
+"6"
+]
+],
+[
+"Which BLACKPINK member is from Thailand?",
+"Lisa",
+[
+"Jennie",
+"Rosé",
+"Jisoo"
+]
+],
+[
+"Which BLACKPINK member sang APT. with Bruno Mars?",
+"Rosé",
+[
+"Lisa",
+"Jennie",
+"Jisoo"
+]
+],
+[
+"Which 2012 song by PSY became a worldwide viral hit?",
+"Gangnam Style",
+[
+"Gentleman",
+"Daddy",
+"Hangover"
+]
+],
+[
+"Which BTS song was their first number one on the Billboard Hot 100?",
+"Dynamite",
+[
+"Butter",
+"Boy With Luv",
+"Fake Love"
+]
+],
+[
+"Which BTS member released the solo hit Seven in 2023?",
+"Jungkook",
+[
+"Jimin",
+"V",
+"RM"
+]
+],
+[
+"Karina, Winter, Giselle and Ningning are the members of which group?",
+"aespa",
+[
+"NewJeans",
+"IVE",
+"LE SSERAFIM"
+]
+],
+[
+"Which company is behind BTS?",
+"HYBE",
+[
+"SM Entertainment",
+"YG Entertainment",
+"JYP Entertainment"
+]
+],
+[
+"Which agency manages BLACKPINK?",
+"YG Entertainment",
+[
+"SM Entertainment",
+"JYP Entertainment",
+"HYBE"
+]
+],
+[
+"Stray Kids and TWICE are both with which agency?",
+"JYP Entertainment",
+[
+"SM Entertainment",
+"YG Entertainment",
+"HYBE"
+]
+],
+[
+"In the film KPop Demon Hunters, what is the girl group called?",
+"HUNTR/X",
+[
+"Saja Boys",
+"BLINK",
+"Golden"
+]
+],
+[
+"Which KPop Demon Hunters song went to number one on the Billboard Hot 100?",
+"Golden",
+[
+"Soda Pop",
+"Your Idol",
+"How It's Done"
+]
+],
+[
+"In a K-pop group, who is the maknae?",
+"The youngest member",
+[
+"The leader",
+"The main dancer",
+"The main rapper"
+]
+],
+[
+"In which year did BTS debut?",
+"2013",
+[
+"2011",
+"2015",
+"2016"
+]
+],
+[
+"Which group sang Hype Boy and Super Shy?",
+"NewJeans",
+[
+"aespa",
+"IVE",
+"ITZY"
+]
+],
+[
+"Which group sang Love Dive and I AM?",
+"IVE",
+[
+"ITZY",
+"Red Velvet",
+"NewJeans"
+]
+],
+[
+"G-Dragon is the leader of which group?",
+"BIGBANG",
+[
+"EXO",
+"SHINee",
+"2NE1"
+]
+],
+[
+"In which city is the K-pop scene centred?",
+"Seoul",
+[
+"Busan",
+"Tokyo",
+"Incheon"
+]
+]
+]
+};
+const slug = s => s.toLowerCase().replace(/[^a-z]+/g, "-");
+const $app = document.getElementById("app");
+
+/* ---------- helpers ---------- */
+function h(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v == null || v === false) continue;
+    if (k === "class") e.className = v;
+    else if (k === "style" && typeof v === "object") Object.entries(v).forEach(([p, val]) => e.style.setProperty(p, val));
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else if (k === "text") e.textContent = v;
+    else e.setAttribute(k, v === true ? "" : v);
+  }
+  for (const c of kids.flat(Infinity)) if (c != null && c !== false) e.append(c.nodeType ? c : String(c));
+  return e;
+}
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+};
+let toastT;
+function toast(msg) { document.querySelector(".toast")?.remove(); const t = h("div", { class: "toast", role: "status" }, msg); document.body.append(t); clearTimeout(toastT); toastT = setTimeout(() => t.remove(), 3200); }
+function sheet(...kids) {
+  const scrim = h("div", { class: "scrim" }), close = () => scrim.remove();
+  scrim.append(h("div", { class: "sheet", role: "dialog", "aria-modal": "true" }, h("button", { class: "sheetx", type: "button", "aria-label": "Close", onclick: close }, "✕"), ...kids));
+  scrim.addEventListener("click", e => { if (e.target === scrim) close(); });
+  document.body.append(scrim); return { close };
+}
+const shuffle = a => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const fmtDate = t => new Date(t).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+const mount = (...kids) => $app.replaceChildren(...kids.flat(Infinity).filter(k => k != null && k !== false));
+const field = (label, input) => h("label", { class: "field" }, label, input);
+const uid8 = () => Math.random().toString(36).slice(2, 10);
+
+/* ---------- countries: flags, capitals, mystery country ---------- */
+const COUNTRIES = [
+["AL","Albania","Tirana",41.3,19.8,"Europe"],["AT","Austria","Vienna",48.2,16.4,"Europe"],["BE","Belgium","Brussels",50.8,4.4,"Europe"],
+["BA","Bosnia and Herzegovina","Sarajevo",43.9,18.4,"Europe"],["BG","Bulgaria","Sofia",42.7,23.3,"Europe"],["HR","Croatia","Zagreb",45.8,16.0,"Europe"],
+["CY","Cyprus","Nicosia",35.2,33.4,"Europe"],["CZ","Czechia","Prague",50.1,14.4,"Europe"],["DK","Denmark","Copenhagen",55.7,12.6,"Europe"],
+["EE","Estonia","Tallinn",59.4,24.7,"Europe"],["FI","Finland","Helsinki",60.2,24.9,"Europe"],["FR","France","Paris",48.9,2.4,"Europe"],
+["DE","Germany","Berlin",52.5,13.4,"Europe"],["GR","Greece","Athens",38.0,23.7,"Europe"],["HU","Hungary","Budapest",47.5,19.0,"Europe"],
+["IS","Iceland","Reykjavik",64.1,-21.9,"Europe"],["IE","Ireland","Dublin",53.3,-6.3,"Europe"],["IT","Italy","Rome",41.9,12.5,"Europe"],
+["LV","Latvia","Riga",56.9,24.1,"Europe"],["LT","Lithuania","Vilnius",54.7,25.3,"Europe"],["LU","Luxembourg","Luxembourg",49.6,6.1,"Europe"],
+["MT","Malta","Valletta",35.9,14.5,"Europe"],["MD","Moldova","Chișinău",47.0,28.9,"Europe"],["ME","Montenegro","Podgorica",42.4,19.3,"Europe"],
+["NL","Netherlands","Amsterdam",52.4,4.9,"Europe"],["MK","North Macedonia","Skopje",42.0,21.4,"Europe"],["NO","Norway","Oslo",59.9,10.8,"Europe"],
+["PL","Poland","Warsaw",52.2,21.0,"Europe"],["PT","Portugal","Lisbon",38.7,-9.1,"Europe"],["RO","Romania","Bucharest",44.4,26.1,"Europe"],
+["RS","Serbia","Belgrade",44.8,20.5,"Europe"],["SK","Slovakia","Bratislava",48.1,17.1,"Europe"],["SI","Slovenia","Ljubljana",46.1,14.5,"Europe"],
+["ES","Spain","Madrid",40.4,-3.7,"Europe"],["SE","Sweden","Stockholm",59.3,18.1,"Europe"],["CH","Switzerland","Bern",46.9,7.4,"Europe"],
+["UA","Ukraine","Kyiv",50.5,30.5,"Europe"],["GB","United Kingdom","London",51.5,-0.1,"Europe"],["BY","Belarus","Minsk",53.9,27.6,"Europe"],
+["RU","Russia","Moscow",55.8,37.6,"Europe"],["MC","Monaco","Monaco",43.7,7.4,"Europe"],["SM","San Marino","San Marino",43.9,12.4,"Europe"],
+["LI","Liechtenstein","Vaduz",47.1,9.5,"Europe"],["VA","Vatican City","Vatican City",41.9,12.45,"Europe"],
+["GE","Georgia","Tbilisi",41.7,44.8,"Asia"],["AM","Armenia","Yerevan",40.2,44.5,"Asia"],["AZ","Azerbaijan","Baku",40.4,49.9,"Asia"],
+["TR","Turkey","Ankara",39.9,32.9,"Asia"],["CN","China","Beijing",39.9,116.4,"Asia"],["JP","Japan","Tokyo",35.7,139.7,"Asia"],
+["KR","South Korea","Seoul",37.6,127.0,"Asia"],["KP","North Korea","Pyongyang",39.0,125.8,"Asia"],["IN","India","New Delhi",28.6,77.2,"Asia"],
+["PK","Pakistan","Islamabad",33.7,73.0,"Asia"],["BD","Bangladesh","Dhaka",23.8,90.4,"Asia"],["NP","Nepal","Kathmandu",27.7,85.3,"Asia"],
+["TH","Thailand","Bangkok",13.8,100.5,"Asia"],["VN","Vietnam","Hanoi",21.0,105.8,"Asia"],["KH","Cambodia","Phnom Penh",11.6,104.9,"Asia"],
+["LA","Laos","Vientiane",18.0,102.6,"Asia"],["MM","Myanmar","Naypyidaw",19.8,96.1,"Asia"],["MY","Malaysia","Kuala Lumpur",3.1,101.7,"Asia"],
+["SG","Singapore","Singapore",1.3,103.8,"Asia"],["ID","Indonesia","Jakarta",-6.2,106.8,"Asia"],["PH","Philippines","Manila",14.6,121.0,"Asia"],
+["MN","Mongolia","Ulaanbaatar",47.9,106.9,"Asia"],["KZ","Kazakhstan","Astana",51.2,71.4,"Asia"],["UZ","Uzbekistan","Tashkent",41.3,69.3,"Asia"],
+["AF","Afghanistan","Kabul",34.5,69.2,"Asia"],["IR","Iran","Tehran",35.7,51.4,"Asia"],["IQ","Iraq","Baghdad",33.3,44.4,"Asia"],
+["SA","Saudi Arabia","Riyadh",24.7,46.7,"Asia"],["AE","United Arab Emirates","Abu Dhabi",24.5,54.4,"Asia"],["QA","Qatar","Doha",25.3,51.5,"Asia"],
+["JO","Jordan","Amman",31.95,35.9,"Asia"],["LB","Lebanon","Beirut",33.9,35.5,"Asia"],["SY","Syria","Damascus",33.5,36.3,"Asia"],
+["OM","Oman","Muscat",23.6,58.4,"Asia"],["LK","Sri Lanka","Sri Jayawardenepura Kotte",6.9,79.9,"Asia"],
+["EG","Egypt","Cairo",30.0,31.2,"Africa"],["MA","Morocco","Rabat",34.0,-6.8,"Africa"],["DZ","Algeria","Algiers",36.8,3.1,"Africa"],
+["TN","Tunisia","Tunis",36.8,10.2,"Africa"],["LY","Libya","Tripoli",32.9,13.2,"Africa"],["NG","Nigeria","Abuja",9.1,7.5,"Africa"],
+["GH","Ghana","Accra",5.6,-0.2,"Africa"],["SN","Senegal","Dakar",14.7,-17.4,"Africa"],["CI","Côte d'Ivoire","Yamoussoukro",6.8,-5.3,"Africa"],
+["ML","Mali","Bamako",12.6,-8.0,"Africa"],["ET","Ethiopia","Addis Ababa",9.0,38.7,"Africa"],["KE","Kenya","Nairobi",-1.3,36.8,"Africa"],
+["TZ","Tanzania","Dodoma",-6.2,35.7,"Africa"],["UG","Uganda","Kampala",0.3,32.6,"Africa"],["RW","Rwanda","Kigali",-1.9,30.1,"Africa"],
+["CD","DR Congo","Kinshasa",-4.3,15.3,"Africa"],["CM","Cameroon","Yaoundé",3.9,11.5,"Africa"],["AO","Angola","Luanda",-8.8,13.2,"Africa"],
+["ZA","South Africa","Pretoria",-25.7,28.2,"Africa"],["ZW","Zimbabwe","Harare",-17.8,31.0,"Africa"],["ZM","Zambia","Lusaka",-15.4,28.3,"Africa"],
+["MZ","Mozambique","Maputo",-26.0,32.6,"Africa"],["MG","Madagascar","Antananarivo",-18.9,47.5,"Africa"],["NA","Namibia","Windhoek",-22.6,17.1,"Africa"],
+["BW","Botswana","Gaborone",-24.6,25.9,"Africa"],["SD","Sudan","Khartoum",15.5,32.5,"Africa"],["SO","Somalia","Mogadishu",2.0,45.3,"Africa"],
+["US","United States","Washington, D.C.",38.9,-77.0,"Americas"],["CA","Canada","Ottawa",45.4,-75.7,"Americas"],["MX","Mexico","Mexico City",19.4,-99.1,"Americas"],
+["GT","Guatemala","Guatemala City",14.6,-90.5,"Americas"],["CU","Cuba","Havana",23.1,-82.4,"Americas"],["JM","Jamaica","Kingston",18.0,-76.8,"Americas"],
+["HT","Haiti","Port-au-Prince",18.5,-72.3,"Americas"],["DO","Dominican Republic","Santo Domingo",18.5,-69.9,"Americas"],["CR","Costa Rica","San José",9.9,-84.1,"Americas"],
+["PA","Panama","Panama City",9.0,-79.5,"Americas"],["CO","Colombia","Bogotá",4.7,-74.1,"Americas"],["VE","Venezuela","Caracas",10.5,-66.9,"Americas"],
+["EC","Ecuador","Quito",-0.2,-78.5,"Americas"],["PE","Peru","Lima",-12.0,-77.0,"Americas"],["BO","Bolivia","Sucre",-19.0,-65.3,"Americas"],
+["BR","Brazil","Brasília",-15.8,-47.9,"Americas"],["CL","Chile","Santiago",-33.4,-70.7,"Americas"],["AR","Argentina","Buenos Aires",-34.6,-58.4,"Americas"],
+["UY","Uruguay","Montevideo",-34.9,-56.2,"Americas"],["PY","Paraguay","Asunción",-25.3,-57.6,"Americas"],
+["AU","Australia","Canberra",-35.3,149.1,"Oceania"],["NZ","New Zealand","Wellington",-41.3,174.8,"Oceania"],["FJ","Fiji","Suva",-18.1,178.4,"Oceania"],
+["PG","Papua New Guinea","Port Moresby",-9.4,147.2,"Oceania"]
+];
+const C = Object.fromEntries(COUNTRIES.map(([code, name, capital, lat, lon, region]) => [code, { code, name, capital, lat, lon, region }]));
+const flagOf = code => String.fromCodePoint(...[...code].map(ch => 0x1F1E6 + ch.charCodeAt(0) - 65));
+const sameRegion = (c, key) => shuffle(Object.values(C).filter(x => x.code !== c.code && x.region === c.region && x[key] !== c[key])).slice(0, 3).map(x => x[key]);
+const EUROWIN = [[1956,"Switzerland","Lys Assia","Refrain"],[1964,"Italy","Gigliola Cinquetti","Non ho l'età"],[1965,"Luxembourg","France Gall","Poupée de cire, poupée de son"],[1967,"United Kingdom","Sandie Shaw","Puppet on a String"],[1968,"Spain","Massiel","La, la, la"],[1974,"Sweden","ABBA","Waterloo"],[1976,"United Kingdom","Brotherhood of Man","Save Your Kisses for Me"],[1981,"United Kingdom","Bucks Fizz","Making Your Mind Up"],[1982,"Germany","Nicole","Ein bißchen Frieden"],[1985,"Norway","Bobbysocks","La det swinge"],[1987,"Ireland","Johnny Logan","Hold Me Now"],[1988,"Switzerland","Céline Dion","Ne partez pas sans moi"],[1990,"Italy","Toto Cutugno","Insieme: 1992"],[1992,"Ireland","Linda Martin","Why Me?"],[1993,"Ireland","Niamh Kavanagh","In Your Eyes"],[1996,"Ireland","Eimear Quinn","The Voice"],[1997,"United Kingdom","Katrina and the Waves","Love Shine a Light"],[1998,"Israel","Dana International","Diva"],[1999,"Sweden","Charlotte Nilsson","Take Me to Your Heaven"],[2000,"Denmark","Olsen Brothers","Fly on the Wings of Love"],[2001,"Estonia","Tanel Padar, Dave Benton and 2XL","Everybody"],[2002,"Latvia","Marie N","I Wanna"],[2003,"Turkey","Sertab Erener","Everyway That I Can"],[2004,"Ukraine","Ruslana","Wild Dances"],[2005,"Greece","Helena Paparizou","My Number One"],[2006,"Finland","Lordi","Hard Rock Hallelujah"],[2007,"Serbia","Marija Šerifović","Molitva"],[2008,"Russia","Dima Bilan","Believe"],[2009,"Norway","Alexander Rybak","Fairytale"],[2010,"Germany","Lena","Satellite"],[2011,"Azerbaijan","Ell and Nikki","Running Scared"],[2012,"Sweden","Loreen","Euphoria"],[2013,"Denmark","Emmelie de Forest","Only Teardrops"],[2014,"Austria","Conchita Wurst","Rise Like a Phoenix"],[2015,"Sweden","Måns Zelmerlöw","Heroes"],[2016,"Ukraine","Jamala","1944"],[2017,"Portugal","Salvador Sobral","Amar pelos dois"],[2018,"Israel","Netta","Toy"],[2019,"Netherlands","Duncan Laurence","Arcade"],[2021,"Italy","Måneskin","Zitti e buoni"],[2022,"Ukraine","Kalush Orchestra","Stefania"],[2023,"Sweden","Loreen","Tattoo"],[2024,"Switzerland","Nemo","The Code"],[2025,"Austria","JJ","Wasted Love"]];
+const EURO_Q = EUROWIN.flatMap(([y, c, art, song]) => [
+  { id: "ewc-" + y, cat: "Eurovision", q: "Which country won Eurovision " + y + " with \u201c" + song + "\u201d?", a: c, w: shuffle([...new Set(EUROWIN.map(x => x[1]))].filter(x => x !== c)).slice(0, 3) },
+  { id: "ewy-" + y, cat: "Eurovision", q: "In which year did " + art + " win Eurovision with \u201c" + song + "\u201d?", a: String(y), w: shuffle([-6, -5, -4, -3, -2, -1, 1, 2, 3, 4, 5, 6].map(d => y + d).filter(v => v >= 1956 && v <= 2025 && v !== 2020)).slice(0, 3).map(String) }
+]);
+const QBANK = [
+  ...EURO_Q,
+  ...Object.entries(BANK).flatMap(([cat, list]) => list.map((q, i) => ({ id: slug(cat) + i, cat, q: q[0], a: q[1], w: q[2] }))),
+  ...Object.values(C).map(c => ({ id: "flag-" + c.code, cat: "Flags", q: "Which country does this flag belong to?", flag: flagOf(c.code), a: c.name, w: sameRegion(c, "name") })),
+  ...Object.values(C).map(c => ({ id: "cap-" + c.code, cat: "Capitals", q: "What is the capital of " + c.name + "?", a: c.capital, w: sameRegion(c, "capital") }))
+];
+const CATS = ["Geography", "Flags", "Capitals", "History", "Eurovision", "K-pop", "Music & Film", "Science", "Food", "Sport", "Words"].filter(c => QBANK.some(q => q.cat === c));
+const rad = d => d * Math.PI / 180;
+function dist(a, b) { const dLat = rad(b.lat - a.lat), dLon = rad(b.lon - a.lon), x = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLon / 2) ** 2; return 2 * 6371 * Math.asin(Math.sqrt(x)); }
+function bearing(a, b) { const y = Math.sin(rad(b.lon - a.lon)) * Math.cos(rad(b.lat)), x = Math.cos(rad(a.lat)) * Math.sin(rad(b.lat)) - Math.sin(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.cos(rad(b.lon - a.lon)); return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360; }
+const ARROWS = ["↑", "↗", "→", "↘", "↓", "↙", "←", "↖"], DIRS = ["north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west"];
+const arrow = b => ARROWS[Math.round(b / 45) % 8], dirName = b => DIRS[Math.round(b / 45) % 8];
+const proximity = d => Math.max(0, Math.round(100 - d / 200));
+const heat = d => "hsl(" + Math.round(210 * Math.min(1, d / 10000)) + " 85% 52%)";
+const fmtKm = d => Math.round(d).toLocaleString() + " km";
+const norm = s => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z]/g, "");
+const BYNAME = Object.assign(Object.fromEntries(Object.values(C).map(c => [norm(c.name), c.code])),
+  { usa: "US", us: "US", america: "US", unitedstatesofamerica: "US", uk: "GB", england: "GB", greatbritain: "GB", britain: "GB", scotland: "GB", holland: "NL", thenetherlands: "NL", korea: "KR", republicofkorea: "KR", ivorycoast: "CI", czechrepublic: "CZ", congo: "CD", drc: "CD", democraticrepublicofthecongo: "CD", uae: "AE", emirates: "AE", turkiye: "TR", burma: "MM", macedonia: "MK", vatican: "VA", holysee: "VA", bosnia: "BA", png: "PG" });
+
+/* ---------- local adapter (this phone only) ---------- */
+function localAdapter() {
+  const KEY = "duel-v2"; let db, me = null; const subs = { players: [], matches: [], qs: [] }, authSubs = [];
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { toast("Storage is full, change not saved"); } };
+  const emit = () => {
+    subs.players.forEach(f => f(structuredClone(db.players)));
+    subs.matches.forEach(([u, f]) => f(Object.entries(db.matches).filter(([, m]) => m.players.includes(u)).map(([id, m]) => ({ id, ...structuredClone(m) }))));
+    subs.qs.forEach(f => f(Object.entries(db.qs).map(([id, q]) => ({ id, ...q }))));
+  };
+  const sub = (list, item) => { list.push(item); return () => { const i = list.indexOf(item); if (i >= 0) list.splice(i, 1); }; };
+  return {
+    mode: "local",
+    async init() {
+      db = store.get(KEY, null) || { players: {}, matches: {}, qs: {} };
+      try { me = sessionStorage.getItem("duel-me") || null; } catch (e) {}
+      if (me && !db.players[me]) me = null;
+    },
+    user: () => me ? { uid: me } : null,
+    onAuth(f) { authSubs.push(f); },
+    use(u) { me = u; try { sessionStorage.setItem("duel-me", u || ""); } catch (e) {} authSubs.forEach(f => f(u ? { uid: u } : null)); },
+    async newPlayer(d) { const u = uid8(); db.players[u] = d; save(); emit(); return u; },
+    watchPlayers(f) { const un = sub(subs.players, f); f(structuredClone(db.players)); return un; },
+    async savePlayer(u, d) { db.players[u] = { ...(db.players[u] || {}), ...d }; save(); emit(); },
+    watchMatches(u, f) { const un = sub(subs.matches, [u, f]); emit(); return un; },
+    createMatch(d, id) { const k = id || uid8(); if (!db.matches[k]) db.matches[k] = d; save(); setTimeout(emit); return k; },
+    async saveAnswers(mid, u, arr) { (db.matches[mid].answers ||= {})[u] = arr; save(); emit(); },
+    async deleteMatch(mid) { delete db.matches[mid]; save(); emit(); },
+    watchQs(f) { const un = sub(subs.qs, f); emit(); return un; },
+    async addQ(d) { db.qs[uid8()] = d; save(); emit(); },
+    async delQ(k) { delete db.qs[k]; save(); emit(); }
+  };
+}
+
+/* ---------- firebase adapter (each on their own phone, synced) ---------- */
+async function firebaseAdapter(cfg) {
+  const V = "10.12.2", base = "https://www.gstatic.com/firebasejs/" + V + "/";
+  const [{ initializeApp }, A, F] = await Promise.all([import(base + "firebase-app.js"), import(base + "firebase-auth.js"), import(base + "firebase-firestore.js")]);
+  const app = initializeApp(cfg);
+  let auth; try { auth = A.initializeAuth(app, { persistence: [A.indexedDBLocalPersistence, A.browserLocalPersistence] }); } catch (e) { auth = A.getAuth(app); }
+  let fs; try { fs = F.initializeFirestore(app, { localCache: F.persistentLocalCache({ tabManager: F.persistentMultipleTabManager() }) }); } catch (e) { fs = F.getFirestore(app); }
+  const col = n => F.collection(fs, n), fail = what => e => toast("Could not load " + what + ": " + e.code);
+  let who = null; const authSubs = [];
+  return {
+    mode: "cloud",
+    async init() {
+      await new Promise(r => { const u = A.onAuthStateChanged(auth, () => { u(); r(); }); });
+      if (!auth.currentUser) { try { await A.signInAnonymously(auth); } catch (e) { toast("Could not connect: " + e.code); } }
+      who = store.get("duel-who", null);
+      try { const d = await F.getDoc(F.doc(fs, "trivia_members", auth.currentUser.uid)); who = d.exists() ? d.data().who : null; } catch (e) { if (e.code === "permission-denied") who = null; }
+      store.set("duel-who", who);
+    },
+    user: () => who ? { uid: who } : null,
+    onAuth(f) { authSubs.push(f); },
+    async join(code, w) {
+      if (!auth.currentUser) await A.signInAnonymously(auth);
+      await F.setDoc(F.doc(fs, "trivia_members", auth.currentUser.uid), { code, who: w, joined: Date.now() });
+      who = w; store.set("duel-who", w); authSubs.forEach(f => f({ uid: w }));
+    },
+    async signOut() {
+      try { await F.deleteDoc(F.doc(fs, "trivia_members", auth.currentUser.uid)); } catch (e) {}
+      who = null; store.set("duel-who", null); authSubs.forEach(f => f(null));
+    },
+    watchPlayers(f) { return F.onSnapshot(col("trivia_players"), s => { const o = {}; s.forEach(d => o[d.id] = d.data()); f(o); }, e => { if (e.code === "permission-denied") { denied = true; render(); } else toast("Could not load players: " + e.code); }); },
+    savePlayer: (u, d) => F.setDoc(F.doc(fs, "trivia_players", u), d, { merge: true }),
+    watchMatches(u, f) { return F.onSnapshot(F.query(col("trivia_matches"), F.where("players", "array-contains", u)), s => f(s.docs.map(d => ({ id: d.id, ...d.data() }))), fail("duels")); },
+    createMatch(d, id) { const ref = id ? F.doc(fs, "trivia_matches", id) : F.doc(col("trivia_matches")); F.setDoc(ref, d, id ? { merge: true } : {}).catch(e => toast("Duel not saved: " + e.code)); return ref.id; },
+    saveAnswers: (mid, u, arr) => F.updateDoc(F.doc(fs, "trivia_matches", mid), { ["answers." + u]: arr }),
+    deleteMatch: mid => F.deleteDoc(F.doc(fs, "trivia_matches", mid)),
+    watchQs(f) { return F.onSnapshot(col("trivia_questions"), s => f(s.docs.map(d => ({ id: d.id, ...d.data() }))), fail("your questions")); },
+    addQ: d => F.addDoc(col("trivia_questions"), d),
+    delQ: k => F.deleteDoc(F.doc(fs, "trivia_questions", k))
+  };
+}
+
+/* ---------- state ---------- */
+let DB, user = null, players = {}, matches = [], qs = [], unsubs = [], denied = false, playersLoaded = false;
+const ui = { busy: false, tick: null, pick: null, lastRoute: null };
+const myUid = () => user?.uid || null;
+const pName = u => players[u]?.name || "Player";
+const pColor = u => players[u]?.color || COLORS[1];
+const partner = () => {
+  const me = myUid(), recent = [...matches].sort((a, b) => b.created - a.created).map(m => m.players.find(p => p !== me)).find(u => players[u]);
+  return recent || Object.keys(players).find(u => u !== me) || null;
+};
+const myQs = (m, u) => [...(m.qs || []), ...((m.us || {})[u] || [])];
+const answers = (m, u) => (m.answers || {})[u] || [];
+const kindOf = m => m.type || "quiz";
+const isMys = m => m.type === "mystery";
+const quizLike = m => !m.type || m.type === "daily";
+const LOWER_WINS = { mystery: true, border: true };
+const guesses = (m, u) => answers(m, u).filter(g => g !== "?").length;
+const found = (m, u) => answers(m, u).includes(m.target);
+const gaveUp = (m, u) => answers(m, u).includes("?");
+function isDone(m, u) {
+  const a = answers(m, u);
+  switch (kindOf(m)) {
+    case "mystery": return a.some(g => g === m.target || g === "?");
+    case "border": return a.includes("?") || (a.length > 0 && bordersOf(a[a.length - 1]).includes(m.target));
+    case "hl": return a.some(x => !x.ok) || a.length >= (m.pairs || []).length;
+    case "timeline": return a.length >= (m.rounds || []).length;
+    default: return a.length >= myQs(m, u).length;
+  }
+}
+function pts(m, u) {
+  const a = answers(m, u);
+  switch (kindOf(m)) {
+    case "mystery": case "border": return guesses(m, u);
+    case "hl": return a.filter(x => x.ok).length;
+    default: return a.reduce((s, x) => s + (x.pts || 0), 0);
+  }
+}
+const shortScore = (m, u) => LOWER_WINS[kindOf(m)] && gaveUp(m, u) ? "✗" : pts(m, u);
+const finished = m => m.players.every(u => isDone(m, u));
+const winnerOf = m => {
+  const [a, b] = m.players, low = LOWER_WINS[kindOf(m)], v = u => low && gaveUp(m, u) ? Infinity : pts(m, u), x = v(a), y = v(b);
+  return x === y ? "tie" : (low ? x < y : x > y) ? a : b;
+};
+const yourTurn = () => matches.filter(m => !isDone(m, myUid()) && !(m.type === "daily" && m.day !== todayKey())).sort((a, b) => b.created - a.created);
+function record(me, opp) {
+  const r = { w: 0, l: 0, t: 0 };
+  matches.filter(m => finished(m) && (!opp || m.players.includes(opp))).forEach(m => { const w = winnerOf(m); w === "tie" ? r.t++ : w === me ? r.w++ : r.l++; });
+  return r;
+}
+
+/* ---------- question picking ---------- */
+const fmtQ = q => ({ id: q.id, cat: q.cat, q: q.q, a: q.a, opts: shuffle([q.a, ...q.w]), ...(q.flag ? { flag: q.flag } : {}) });
+function seenIds() { return new Set(matches.flatMap(m => [...[...(m.qs || []), ...Object.values(m.us || {}).flat()].map(q => q.id), ...(m.target ? ["mys-" + m.target] : [])])); }
+function pickQs(cats, n, seen) {
+  const pool = QBANK.filter(q => cats.includes(q.cat));
+  return [...shuffle(pool.filter(q => !seen.has(q.id))), ...shuffle(pool.filter(q => seen.has(q.id)))].slice(0, n).map(fmtQ);
+}
+function pickUs(author, k, seen) {
+  const pool = qs.filter(q => q.by === author).map(q => ({ id: "us-" + q.id, cat: "Us", q: q.q, a: q.a, w: q.w }));
+  return [...shuffle(pool.filter(q => !seen.has(q.id))), ...shuffle(pool.filter(q => seen.has(q.id)))].slice(0, k).map(fmtQ);
+}
+
+/* ---------- small controls ---------- */
+function catPicker() {
+  const all = CATS; const known = store.get("duel-known", []); let sel = new Set([...store.get("duel-cats", all).filter(c => all.includes(c)), ...all.filter(c => !known.includes(c))]); store.set("duel-known", all);
+  if (!sel.size) sel = new Set(all);
+  const el = h("div", { class: "chips" }), listeners = [];
+  const draw = () => el.replaceChildren(...all.map(c => h("button", { class: "chip", type: "button", "aria-pressed": String(sel.has(c)), onclick: () => { sel.has(c) ? sel.delete(c) : sel.add(c); store.set("duel-cats", [...sel]); draw(); listeners.forEach(f => f()); } }, c, h("small", {}, QBANK.filter(q => q.cat === c).length))));
+  draw();
+  return { el: h("div", { class: "field" }, h("span", { class: "label" }, "Categories"), el), get: () => [...sel], onChange: f => listeners.push(f) };
+}
+function seg(label, values, def) {
+  let v = def; const el = h("div", { class: "seg", role: "group", "aria-label": label }), listeners = [];
+  const draw = () => el.replaceChildren(...values.map(x => h("button", { type: "button", "aria-pressed": String(x === v), onclick: () => { v = x; draw(); listeners.forEach(f => f()); } }, x)));
+  draw();
+  return { el: h("div", { class: "field" }, h("span", { class: "label" }, label), el), get: () => v, onChange: f => listeners.push(f) };
+}
+function toggle(id, label, on, disabled) {
+  const box = h("input", { type: "checkbox", id, checked: on && !disabled, disabled: !!disabled });
+  return { el: h("label", { class: "toggle" + (disabled ? " off" : "") }, box, label), get: () => box.checked };
+}
+const avatar = u => h("span", { class: "av", style: { "--c": pColor(u) }, "aria-hidden": "true" }, pName(u).slice(0, 1).toUpperCase());
+const topbar = (onClose, right) => h("div", { class: "topbar" }, h("button", { class: "xbtn", type: "button", "aria-label": "Leave", onclick: onClose }, "✕"), right || h("span"));
+function copyLink() {
+  const url = location.origin + location.pathname;
+  return h("div", { class: "field" }, h("span", { class: "label" }, "App link"),
+    h("div", { class: "actions" }, h("input", { type: "text", id: "applink", value: url, readonly: true, style: { flex: "1", "min-width": "0", padding: "10px 12px", border: "1.5px solid var(--line)", "border-radius": "10px", background: "var(--surface)" } }),
+      h("button", { class: "btn", type: "button", onclick: e => { navigator.clipboard?.writeText(url).then(() => toast("Link copied"), () => { document.getElementById("applink").select(); }); } }, "Copy")));
+}
+
+/* ---------- question card (shared by duels and same phone) ---------- */
+function questionCard({ q, idx, total, label, color, timer, bet, onDone }) {
+  clearInterval(ui.tick);
+  const fill = h("i"), verdict = h("span", { class: "verdict", role: "status" }), next = h("button", { class: "btn primary", type: "button", hidden: true }, "Next");
+  let t0 = performance.now(), done = false, stake = bet ? 0 : 1;
+  const opts = q.opts.map((o, i) => h("button", { class: "opt", type: "button", disabled: !!bet, onclick: () => pick(o) }, h("span", { class: "k" }, "ABCD"[i]), h("span", {}, o)));
+  function pick(choice) {
+    if (done || !stake) return; done = true; clearInterval(ui.tick); ui.pick = null;
+    const ms = Math.min(TIME * 1000, Math.round(performance.now() - t0)), ok = choice === q.a;
+    const p = ok ? (100 + (timer ? Math.round(Math.max(0, 1 - ms / (TIME * 1000)) * 50) : 0)) * stake : bet ? -50 * stake : 0;
+    opts.forEach((b, i) => { b.disabled = true; const o = q.opts[i]; b.classList.add(o === q.a ? "right" : o === choice ? "wrong" : "dim"); });
+    verdict.textContent = ok ? "Correct, +" + p : (choice == null ? "Time's up" : "Not quite") + (p ? ", " + p : "");
+    verdict.className = "verdict " + (ok ? "good" : "bad");
+    next.hidden = false;
+    onDone({ c: choice, ok, ms, pts: p, ...(bet ? { bet: stake } : {}) }, next);
+    next.focus();
+  }
+  const startTimer = () => { if (timer) ui.tick = setInterval(() => { const left = Math.max(0, 1 - (performance.now() - t0) / (TIME * 1000)); fill.style.transform = "scaleX(" + left + ")"; if (left <= 0) pick(null); }, 100); };
+  const betRow = bet ? h("div", { class: "betrow" }, h("span", { class: "label" }, "How sure are you?"), [1, 2, 3].map(n => h("button", { class: "chip", type: "button", "aria-pressed": "false", onclick: e => {
+    if (stake) return; stake = n; e.currentTarget.setAttribute("aria-pressed", "true");
+    betRow.querySelectorAll("button").forEach(b => b.disabled = true); opts.forEach(b => b.disabled = false);
+    t0 = performance.now(); startTimer(); opts[0].focus();
+  } }, n + (n === 1 ? " chip" : " chips")))) : null;
+  if (!bet) startTimer();
+  ui.pick = i => opts[i]?.click();
+  return h("article", { class: "card", style: { "--turn": color } },
+    h("div", { class: "meta" }, h("span", { class: "turn" }, label), h("span", { class: "cat" }, q.cat === "Us" ? "About you two" : q.cat)),
+    timer ? h("div", { class: "timer" }, fill) : null,
+    h("span", { class: "faint", style: { "font-size": "13px", "margin-bottom": "-8px" } }, "Question " + (idx + 1) + " of " + total),
+    q.flag ? h("div", { class: "flag", role: "img", "aria-label": "Flag to identify" }, q.flag) : null,
+    h("h2", { class: "q" }, q.q),
+    betRow,
+    h("div", { class: "opts" }, opts),
+    h("div", { class: "qfoot" }, verdict, next));
+}
+document.addEventListener("keydown", e => {
+  if (!ui.pick || e.metaKey || e.ctrlKey || e.altKey) return;
+  const i = "ABCD".indexOf(e.key.toUpperCase()), j = "1234".indexOf(e.key);
+  if (i >= 0 || j >= 0) ui.pick(i >= 0 ? i : j);
+});
+
+/* ---------- tab bar ---------- */
+function drawTabs(r) {
+  let bar = document.getElementById("tabbar");
+  if (!bar) { bar = h("nav", { id: "tabbar", "aria-label": "Sections" }); document.body.append(bar); }
+  const turn = user ? yourTurn().length : 0;
+  try { turn ? navigator.setAppBadge?.(turn) : navigator.clearAppBadge?.(); } catch (e) {}
+  const tabs = [["/", "🎲", "Play"], ["/duels", "⚔️", "Duels", turn], ["/us", "💌", "Us"], ["/me", "👤", "Me"]];
+  bar.replaceChildren(...tabs.map(([path, ic, label, n]) => h("button", { type: "button", "aria-current": r === path ? "page" : null, onclick: () => go(path) },
+    h("span", { class: "ti" }, ic, n ? h("b", {}, n > 9 ? "9+" : n) : null), h("span", {}, label))));
+}
+
+/* ---------- Play (home) ---------- */
+function renderHome() {
+  const me = myUid(), opp = partner(), turn = yourTurn(), rec = opp ? record(me, opp) : null;
+  const waiting = matches.filter(m => isDone(m, me) && !finished(m)).length;
+  const dm = opp ? matches.find(m => m.id === dailyId(me, opp, todayKey())) : null, streak = dailyStreak();
+  const dState = !dm || !isDone(dm, me) ? (dm && answers(dm, me).length ? "Finish today's 5" : "Play today's 5") : !isDone(dm, opp) ? "Done. " + pName(opp) + "'s turn" : pts(dm, me) + " : " + pts(dm, opp);
+  const tile = (cls, glyph, title, sub, fn) => h("button", { class: "tile " + cls, type: "button", onclick: fn }, h("span", { class: "glyph", "aria-hidden": "true" }, glyph), h("b", {}, title), h("span", {}, sub));
+  mount(
+    h("header", { class: "titlepage" }, h("div", { class: "kicker" }, "Duel di Trivia"), h("h1", {}, "Ciao ", h("span", { class: "a" }, pName(me))),
+      h("p", {}, opp ? (turn.length ? "You have " + turn.length + (turn.length === 1 ? " game" : " games") + " to play." : waiting ? "Waiting for " + pName(opp) + "." : "Pick a game and send it over.") : "Your partner needs to sign in once before you can play.")),
+    h("button", { class: "daily", type: "button", onclick: () => dm && isDone(dm, me) ? go("/duel/" + dm.id) : playDaily() },
+      h("div", {}, h("span", { class: "label" }, "Daily challenge"), h("b", {}, dState)),
+      h("div", { class: "streak", "aria-label": streak + " day streak" }, h("b", {}, streak), h("span", {}, streak === 1 ? "day" : "days"))),
+    rec && rec.w + rec.l + rec.t ? h("div", { class: "tally", "aria-label": "Head to head" },
+      h("div", { class: "side" }, h("span", { class: "nm" }, pName(me)), h("span", { class: "n", style: { color: pColor(me) } }, rec.w)),
+      h("div", { class: "mid" }, "head to head", rec.t ? h("div", {}, rec.t + (rec.t === 1 ? " tie" : " ties")) : null),
+      h("div", { class: "side" }, h("span", { class: "nm" }, pName(opp)), h("span", { class: "n", style: { color: pColor(opp) } }, rec.l))) : null,
+    turn.length ? h("section", { class: "sect" }, h("h3", {}, "Your turn"), turn.slice(0, 4).map(duelRow)) : null,
+    h("div", { class: "tiles" },
+      tile("main", "?!", "Quiz duel", "Pick categories, " + (opp ? pName(opp) : "your partner") + " gets the same questions.", () => newDuel()),
+      tile("mys", "🧭", "Mystery country", "Hot or cold. Fewer guesses wins.", startMystery),
+      tile("c-bd", "⇢", "Borders", "Connect two countries through their neighbours.", startBorder),
+      tile("c-hl", "⇅", "Higher or lower", "More people? Bigger? Keep the streak going.", startHL),
+      tile("c-tl", "⌛", "Timeline", "Put history in order, 5 rounds.", startTimeline)),
+    h("button", { class: "btn ghost wide", type: "button", onclick: () => go("/local") }, "Same phone: pass and play together"));
+}
+/* ---------- new duel ---------- */
+function newDuel(preset) {
+  const me = myUid(), others = Object.keys(players).filter(u => u !== me);
+  if (!others.length) {
+    sheet(h("h2", {}, "No one to duel yet"),
+      h("p", { class: "muted" }, DB.mode === "local" ? "Add a second player from the Me tab, then switch between you on this phone." : "Send the app link to your partner. Once they create an account and pick a name, they show up here."),
+      DB.mode === "local" ? null : copyLink());
+    return;
+  }
+  let opp = preset?.opp || partner() || others[0];
+  const oppEl = h("div", { class: "chips" });
+  const drawOpp = () => oppEl.replaceChildren(...others.map(u => h("button", { class: "chip", type: "button", "aria-pressed": String(u === opp), onclick: () => { opp = u; drawOpp(); drawUs(); } }, pName(u))));
+  drawOpp();
+  const cats = catPicker(), len = seg("Questions", [5, 8, 10], preset?.n || 8), tm = toggle("nd-timer", "20s timer with speed bonus", preset ? preset.timer : true), bt = toggle("nd-bets", "Bets: stake 1 to 3 chips on every answer", !!preset?.bets);
+  const usBox = h("div"); let us = null;
+  const drawUs = () => {
+    const k = Math.min(2, qs.filter(q => q.by === me).length, qs.filter(q => q.by === opp).length);
+    us = toggle("nd-us", k ? "Add " + k + " \"Us\" " + (k === 1 ? "question" : "questions") + " each, written by you two" : "\"Us\" questions", true, !k);
+    usBox.replaceChildren(us.el, k ? "" : h("p", { class: "faint", style: { "font-size": "14px", "margin-top": "4px" } }, "You both need to write at least one in the Us tab first."));
+  };
+  drawUs();
+  const startBtn = h("button", { class: "btn primary wide", type: "button" }, "Start the duel"), hint = h("p", { class: "status" });
+  const check = () => { const have = QBANK.filter(q => cats.get().includes(q.cat)).length; startBtn.disabled = have < len.get(); hint.textContent = have < len.get() ? "Pick more categories, there are only " + have + " questions." : ""; };
+  cats.onChange(check); len.onChange(check); check();
+  const { close } = sheet(h("h2", {}, "Quiz duel"),
+    others.length > 1 ? h("div", { class: "field" }, h("span", { class: "label" }, "Against"), oppEl) : h("p", { class: "muted" }, "Against ", h("b", {}, pName(opp)), ". You play first, then it waits for them."),
+    cats.el, h("div", { class: "setrow" }, len.el, tm.el), usBox, bt.el, h("p", { class: "faint", style: { "font-size": "14px", "margin-top": "-8px" } }, "Right answers pay 100 per chip, wrong ones cost 50 per chip."), startBtn, hint);
+  startBtn.onclick = () => { close(); createDuel(opp, cats.get(), len.get(), tm.get(), us.get(), bt.get()); };
+}
+function createDuel(opp, cats, n, timer, withUs, bets) {
+  const me = myUid(), seen = seenIds();
+  const usQs = { [me]: [], [opp]: [] };
+  if (withUs) { const k = Math.min(2, qs.filter(q => q.by === me).length, qs.filter(q => q.by === opp).length); usQs[me] = pickUs(opp, k, seen); usQs[opp] = pickUs(me, k, seen); }
+  const id = DB.createMatch({ players: [me, opp], by: me, created: Date.now(), cats, n, timer, withUs: !!withUs, bets: !!bets, qs: pickQs(cats, n, seen), us: usQs, answers: { [me]: [], [opp]: [] } });
+  go("/play/" + id);
+}
+
+/* ---------- playing a duel ---------- */
+function renderPlay(mid) {
+  const m = matches.find(x => x.id === mid), me = myUid();
+  if (!m) { mount(topbar(() => go("/duels")), h("p", { class: "muted" }, "Loading the duel")); return; }
+  { const P = { mystery: playMystery, border: playBorder, hl: playHL, timeline: playTimeline }[kindOf(m)]; if (P) return P(m); }
+  const list = myQs(m, me), ans = [...answers(m, me)], opp = m.players.find(p => p !== me);
+  if (ans.length >= list.length) { go("/duel/" + mid); return; }
+  ui.busy = true; document.body.classList.remove("withtabs");
+  const score = h("b", { style: { "font-family": "var(--display)", "font-size": "20px", "font-variant-numeric": "tabular-nums" } });
+  const leave = () => { ui.busy = false; clearInterval(ui.tick); ui.pick = null; go("/duels"); };
+  const step = () => {
+    const i = ans.length;
+    if (i >= list.length) { ui.busy = false; go("/duel/" + mid); return; }
+    score.textContent = ans.reduce((s, a) => s + a.pts, 0) + " pts";
+    const q = list[i];
+    mount(topbar(leave, score), questionCard({ q, idx: i, total: list.length, timer: m.timer, color: pColor(me),
+      label: q.cat === "Us" ? "Written by " + pName(opp) : (m.type === "daily" ? "Daily · " : "") + "vs " + pName(opp), bet: !!m.bets,
+      onDone: (res, next) => {
+        ans.push(res); score.textContent = ans.reduce((s, a) => s + a.pts, 0) + " pts";
+        Promise.resolve(DB.saveAnswers(mid, me, ans.slice())).catch(e => toast("Answer not saved: " + (e.code || e.message)));
+        next.textContent = ans.length >= list.length ? "See the result" : "Next";
+        next.onclick = step;
+      } }));
+    window.scrollTo(0, 0);
+  };
+  step();
+}
+
+/* ---------- mystery country (Globle style) ---------- */
+function startMystery() {
+  const me = myUid(), others = Object.keys(players).filter(u => u !== me);
+  if (!others.length) return newDuel();
+  const opp = partner() || others[0], seen = seenIds();
+  const pool = Object.keys(C).filter(c => !seen.has("mys-" + c));
+  const target = shuffle(pool.length ? pool : Object.keys(C))[0];
+  const id = DB.createMatch({ type: "mystery", players: [me, opp], by: me, created: Date.now(), target, answers: { [me]: [], [opp]: [] } });
+  go("/play/" + id);
+}
+function guessRow(code, T) {
+  const c = C[code], hit = code === T.code, d = dist(c, T), p = hit ? 100 : proximity(d), b = bearing(c, T);
+  return h("div", { class: "guess" + (hit ? " hit" : ""), style: { "--p": p + "%", "--h": hit ? "var(--good)" : heat(d) } },
+    h("span", { class: "gflag", "aria-hidden": "true" }, flagOf(code)), h("span", { class: "gname" }, c.name),
+    h("span", { class: "gdist" }, hit ? "Found it" : fmtKm(d)),
+    h("span", { class: "garrow", title: hit ? "" : "Go " + dirName(b), "aria-label": hit ? "correct" : "go " + dirName(b) }, hit ? "✓" : arrow(b)));
+}
+function playMystery(m) {
+  const me = myUid(), opp = m.players.find(p => p !== me), T = C[m.target];
+  if (isDone(m, me)) { go("/duel/" + m.id); return; }
+  ui.busy = true; document.body.classList.remove("withtabs");
+  const g = [...answers(m, me)];
+  const count = h("b", { class: "gcount" });
+  const input = h("input", { type: "text", id: "mys-in", list: "mys-list", autocomplete: "off", autocapitalize: "words", spellcheck: "false", placeholder: "Type a country", enterkeyhint: "go", "aria-label": "Country" });
+  const dl = h("datalist", { id: "mys-list" }, Object.values(C).sort((a, b) => a.name.localeCompare(b.name)).map(c => h("option", { value: c.name })));
+  const list = h("div", { class: "guesses" }), hint = h("p", { class: "muted" }), msg = h("p", { class: "status", role: "status" }), give = h("div", { class: "confirm" });
+  const leave = () => { ui.busy = false; go("/duels"); };
+  const save = () => Promise.resolve(DB.saveAnswers(m.id, me, g.slice())).catch(e => toast("Not saved: " + (e.code || e.message)));
+  const draw = () => {
+    const real = g.filter(x => x !== "?" && C[x]);
+    count.textContent = real.length + (real.length === 1 ? " guess" : " guesses");
+    list.replaceChildren(...real.slice().sort((a, b) => dist(C[a], T) - dist(C[b], T)).map(code => guessRow(code, T)));
+    hint.textContent = real.length >= 10 ? "Hint: it's in " + T.region + " and starts with " + T.name[0] + "." : real.length >= 5 ? "Hint: it's in " + T.region + "." : real.length ? "Closest guesses are at the top. The arrow points towards the mystery country." : "Guess any country. You'll see how far its capital is from the mystery country's capital, and which way to go.";
+  };
+  const drawGive = ask => give.replaceChildren(...(ask ? [h("span", {}, "Give up and see the answer?"), h("button", { class: "btn danger", type: "button", onclick: () => { g.push("?"); save(); reveal(false); } }, "Give up"), h("button", { class: "btn ghost", type: "button", onclick: () => drawGive(false) }, "Keep going")] : [h("button", { class: "btn ghost", type: "button", onclick: () => drawGive(true) }, "Give up")]));
+  const reveal = won => {
+    const n = g.filter(x => x !== "?").length;
+    mount(topbar(leave, count),
+      h("div", { class: "panel reveal" }, h("span", { class: "label" }, won ? "Found it" : "The mystery country was"), h("div", { class: "flag" }, flagOf(T.code)), h("h1", {}, T.name),
+        h("p", { class: "muted" }, won ? "In " + n + (n === 1 ? " guess. Unreal." : " guesses. Now it's " + pName(opp) + "'s turn to beat that.") : "Capital: " + T.capital),
+        h("button", { class: "btn primary", type: "button", onclick: () => { ui.busy = false; go("/duel/" + m.id); } }, "See the duel")),
+      list);
+  };
+  const submit = e => {
+    e.preventDefault();
+    const code = BYNAME[norm(input.value)];
+    if (!code) { msg.textContent = input.value.trim() ? "That's not in the list. Pick a country from the suggestions." : ""; return; }
+    if (g.includes(code)) { msg.textContent = "You already guessed " + C[code].name + "."; input.value = ""; return; }
+    g.push(code); input.value = ""; msg.textContent = ""; save(); draw();
+    if (code === m.target) reveal(true); else input.focus();
+  };
+  draw(); drawGive(false);
+  mount(topbar(leave, count),
+    h("header", { class: "titlepage" }, h("div", { class: "kicker" }, "Mystery country"), h("h1", {}, "Which country is it?"),
+      h("p", {}, pName(opp) + " is hunting the same one. Fewer guesses wins.")),
+    h("form", { class: "guessform", onsubmit: submit }, input, dl, h("button", { class: "btn primary", type: "submit" }, "Guess")),
+    msg, hint, list, give);
+  input.focus();
+}
+function deleteControl(mid) {
+  const del = h("div", { class: "confirm" });
+  const draw = ask => del.replaceChildren(...(ask ? [h("span", {}, "Delete this duel for both of you?"), h("button", { class: "btn danger", type: "button", onclick: async () => { await DB.deleteMatch(mid); toast("Duel deleted"); go("/duels"); } }, "Delete"), h("button", { class: "btn ghost", type: "button", onclick: () => draw(false) }, "Keep")] : [h("button", { class: "btn ghost danger", type: "button", onclick: () => draw(true) }, "Delete duel")]));
+  draw(false); return del;
+}
+function renderMysteryDuel(m) {
+  const me = myUid(), opp = m.players.find(p => p !== me), T = C[m.target], meDone = isDone(m, me), oppDone = isDone(m, opp), fin = finished(m);
+  const side = (u, show, right) => h("div", { class: "pl" + (right ? " r" : ""), style: { "--c": pColor(u) } }, h("span", { class: "nm" }, u === me ? "You" : pName(u)),
+    h("span", { class: "sc" }, !show ? "?" : found(m, u) ? guesses(m, u) : "✗"),
+    h("span", { class: "faint", style: { "font-size": "13px" } }, !isDone(m, u) ? (guesses(m, u) ? "still hunting" : "not started") : found(m, u) ? (guesses(m, u) === 1 ? "guess" : "guesses") : "gave up"));
+  const w = fin ? winnerOf(m) : null;
+  const trail = u => h("div", { class: "guesses" }, answers(m, u).filter(x => C[x]).map(code => guessRow(code, T)));
+  mount(
+    topbar(() => go("/duels"), h("span", { class: "faint" }, "Mystery country · " + fmtDate(m.created))),
+    fin ? h("div", { class: "banner", style: { color: w === "tie" ? "var(--ink)" : pColor(w) } }, w === "tie" ? "It's a tie" : w === me ? "You win!" : pName(w) + " wins") : null,
+    h("div", { class: "board" }, side(me, true), h("div", { class: "mid" }, "fewer", h("br"), "wins"), side(opp, meDone && oppDone, true)),
+    meDone ? h("div", { class: "panel reveal" }, h("span", { class: "label" }, "The mystery country"), h("div", { class: "flag" }, flagOf(T.code)), h("h2", {}, T.name), h("p", { class: "muted" }, "Capital: " + T.capital + " · " + T.region)) : null,
+    meDone && !oppDone ? h("p", { class: "muted", style: { "text-align": "center" } }, pName(opp) + " has not found it yet. Their guesses show up once they finish.") : null,
+    h("div", { class: "actions" },
+      !meDone ? h("button", { class: "btn primary", type: "button", onclick: () => go("/play/" + m.id) }, guesses(m, me) ? "Keep hunting" : "Start hunting") : null,
+      fin ? h("button", { class: "btn primary", type: "button", onclick: startMystery }, "New mystery country") : null),
+    meDone ? h("section", { class: "sect" }, h("h3", {}, "Your guesses, in order"), trail(me)) : null,
+    meDone && oppDone ? h("section", { class: "sect" }, h("h3", {}, pName(opp) + "'s guesses"), trail(opp)) : null,
+    deleteControl(m.id));
+}
+
+/* ---------- data for the extra games ---------- */
+const BORDER_SRC = "AL:ME,GR,MK;AT:DE,CZ,SK,HU,SI,IT,CH,LI;BE:FR,LU,DE,NL;BA:HR,RS,ME;BG:RO,RS,MK,GR,TR;HR:SI,HU,RS,BA,ME;CZ:DE,PL,SK,AT;DK:DE;EE:LV,RU;FI:SE,NO,RU;FR:BE,LU,DE,CH,IT,ES,MC;DE:DK,PL,CZ,AT,CH,FR,LU,BE,NL;GR:AL,MK,BG,TR;HU:AT,SK,UA,RO,RS,HR,SI;IE:GB;IT:FR,CH,AT,SI,SM,VA;LV:EE,LT,BY,RU;LT:LV,BY,PL,RU;LU:BE,DE,FR;MD:RO,UA;ME:HR,BA,RS,AL;NL:BE,DE;MK:RS,BG,GR,AL;NO:SE,FI,RU;PL:DE,CZ,SK,UA,BY,LT,RU;PT:ES;RO:HU,UA,MD,BG,RS;RS:HU,RO,BG,MK,ME,BA,HR;SK:CZ,PL,UA,HU,AT;SI:IT,AT,HU,HR;ES:PT,FR;SE:NO,FI;CH:DE,AT,LI,IT,FR;UA:PL,SK,HU,RO,MD,BY,RU;BY:PL,LT,LV,RU,UA;RU:NO,FI,EE,LV,LT,PL,BY,UA,GE,AZ,KZ,CN,MN,KP;LI:CH,AT;GE:RU,TR,AM,AZ;AM:GE,AZ,IR,TR;AZ:RU,GE,AM,IR,TR;TR:GR,BG,GE,AM,AZ,IR,IQ,SY;CN:RU,MN,KP,VN,LA,MM,IN,NP,PK,AF,KZ;MN:RU,CN;KP:CN,RU,KR;IN:PK,CN,NP,BD,MM;PK:IN,AF,IR,CN;BD:IN,MM;NP:IN,CN;TH:MM,LA,KH,MY;VN:CN,LA,KH;KH:TH,LA,VN;LA:CN,VN,KH,TH,MM;MM:BD,IN,CN,LA,TH;MY:TH,ID;ID:MY,PG;KZ:RU,CN,UZ;UZ:KZ,AF;AF:IR,PK,CN,UZ;IR:TR,AM,AZ,IQ,AF,PK;IQ:TR,IR,SY,JO,SA;SY:TR,IQ,JO,LB;JO:SY,IQ,SA;SA:JO,IQ,QA,AE,OM,YE;AE:SA,OM;OM:AE,SA,YE;EG:LY,SD;LY:EG,SD,TN,DZ;TN:DZ,LY;DZ:TN,LY,MA,ML;SD:EG,LY,ET;ET:SD,KE,SO;SO:ET,KE;KE:ET,SO,TZ,UG;UG:KE,TZ,RW,CD;TZ:KE,UG,RW,CD,ZM,MZ;RW:UG,TZ,CD;CD:UG,RW,TZ,ZM,AO;AO:CD,ZM,NA;ZM:CD,TZ,MZ,ZW,BW,NA,AO;ZW:ZM,MZ,ZA,BW;MZ:TZ,ZM,ZW,ZA;ZA:NA,BW,ZW,MZ;NA:AO,ZM,BW,ZA;NG:CM;GH:CI;CI:GH,ML;SN:ML;US:CA,MX;MX:US,GT;CR:PA;PA:CR,CO;CO:PA,VE,BR,PE,EC;VE:CO,BR;EC:CO,PE;PE:EC,CO,BR,BO,CL;BO:PE,BR,PY,AR,CL;BR:VE,CO,PE,BO,PY,AR,UY;AR:CL,BO,PY,BR,UY;UY:AR,BR;PY:BO,BR,AR;HT:DO";
+const BORDERS = {};
+BORDER_SRC.split(";").forEach(part => { const [a, list] = part.split(":"); list.split(",").forEach(b => { if (!C[a] || !C[b]) return; (BORDERS[a] ||= new Set()).add(b); (BORDERS[b] ||= new Set()).add(a); }); });
+function bordersOf(c) { return [...(BORDERS[c] || [])]; }
+function route(a, b) {
+  const prev = { [a]: null }, q = [a];
+  while (q.length) { const x = q.shift(); if (x === b) break; for (const y of bordersOf(x)) if (!(y in prev)) { prev[y] = x; q.push(y); } }
+  if (!(b in prev)) return null;
+  const p = []; for (let x = b; x != null; x = prev[x]) p.unshift(x); return p;
+}
+/* population in millions, area in thousand km² (rounded) */
+const STAT_SRC = "AL:2.8,28.7;AT:9.1,83.9;BE:11.8,30.7;BA:3.2,51.2;BG:6.4,111;HR:3.9,56.6;CY:1.3,9.3;CZ:10.9,78.9;DK:6,43;EE:1.4,45.3;FI:5.6,338;FR:68.4,552;DE:84.5,357;GR:10.4,132;HU:9.6,93;IS:0.39,103;IE:5.3,70.3;IT:59,301;LV:1.9,64.6;LT:2.9,65.3;LU:0.67,2.6;MT:0.55,0.32;MD:2.4,33.8;ME:0.62,13.8;NL:18,41.5;MK:1.8,25.7;NO:5.5,385;PL:36.6,313;PT:10.6,92.2;RO:19,238;RS:6.6,77.5;SK:5.4,49;SI:2.1,20.3;ES:48.6,506;SE:10.6,450;CH:9,41.3;UA:37,604;GB:68.3,244;BY:9.2,208;RU:144,17098;MC:0.039,0.002;SM:0.034,0.061;LI:0.04,0.16;VA:0.0008,0.00044;GE:3.7,69.7;AM:3,29.7;AZ:10.2,86.6;TR:85.6,784;CN:1410,9597;JP:124,378;KR:51.7,100;KP:26.2,121;IN:1440,3287;PK:240,882;BD:173,148;NP:30.9,147;TH:71.7,513;VN:100,331;KH:17.4,181;LA:7.6,237;MM:54.5,677;MY:35.1,330;SG:5.9,0.73;ID:280,1905;PH:115,300;MN:3.5,1564;KZ:20.3,2725;UZ:36.4,449;AF:42,653;IR:90,1648;IQ:45.5,438;SA:33.5,2150;AE:10,83.6;QA:2.9,11.6;JO:11.4,89.3;LB:5.4,10.5;SY:23,185;OM:4.6,310;LK:22,65.6;EG:113,1010;MA:37.8,447;DZ:46,2382;TN:12.3,164;LY:6.9,1760;NG:227,924;GH:34,239;SN:18,197;CI:31,322;ML:23,1240;ET:128,1104;KE:55,580;TZ:67,945;UG:49,241;RW:14,26.3;CD:105,2345;CM:29,475;AO:37,1247;ZA:63,1221;ZW:16.6,391;ZM:21,753;MZ:34,802;MG:31,587;NA:3,824;BW:2.6,582;SD:50,1886;SO:18.7,638;US:335,9834;CA:40.5,9985;MX:129,1964;GT:18,109;CU:11,110;JM:2.8,11;HT:11.7,27.8;DO:11.3,48.7;CR:5.2,51.1;PA:4.5,75.4;CO:52,1142;VE:28,916;EC:18,284;PE:34,1285;BO:12.4,1099;BR:212,8516;CL:19.8,756;AR:46,2780;UY:3.4,176;PY:6.9,407;AU:27,7692;NZ:5.3,268;FJ:0.93,18.3;PG:10.3,463";
+const STATS = Object.fromEntries(STAT_SRC.split(";").map(p => { const [c, v] = p.split(":"); return [c, v.split(",").map(Number)]; }).filter(([c]) => C[c]));
+function fmtStat(k, v) {
+  if (k === "pop") return v >= 1 ? (v >= 100 ? Math.round(v).toLocaleString() : v.toFixed(1).replace(/\.0$/, "")) + " million" : v >= 0.001 ? Math.round(v * 1000).toLocaleString() + " thousand" : Math.round(v * 1e6).toLocaleString() + " people";
+  const km = v * 1000; return (km >= 1 ? Math.round(km).toLocaleString() : km.toFixed(2)) + " km²";
+}
+const EVENTS = [
+[-2560,"The Great Pyramid of Giza is completed"],[-753,"Rome is founded, according to legend"],[-490,"The Battle of Marathon"],[-323,"Alexander the Great dies"],
+[-218,"Hannibal crosses the Alps"],[-44,"Julius Caesar is assassinated"],[-27,"Augustus becomes the first Roman emperor"],[79,"Vesuvius buries Pompeii"],
+[313,"The Edict of Milan legalises Christianity"],[476,"The Western Roman Empire falls"],[537,"Hagia Sophia is completed in Constantinople"],[800,"Charlemagne is crowned emperor"],
+[1066,"The Normans conquer England"],[1096,"The First Crusade sets off"],[1215,"The Magna Carta is sealed"],[1321,"Dante Alighieri dies"],
+[1347,"The Black Death reaches Europe"],[1453,"Constantinople falls to the Ottomans"],[1492,"Columbus reaches the Americas"],[1512,"Michelangelo finishes the Sistine Chapel ceiling"],
+[1517,"Luther publishes his 95 Theses"],[1527,"The Sack of Rome"],[1633,"Galileo is put on trial by the Inquisition"],[1648,"The Peace of Westphalia ends the Thirty Years' War"],
+[1666,"The Great Fire of London"],[1683,"The Ottoman siege of Vienna fails"],[1687,"Newton publishes the Principia"],[1740,"Maria Theresa begins her reign"],
+[1776,"The US Declaration of Independence"],[1789,"The storming of the Bastille"],[1804,"Napoleon crowns himself emperor"],[1815,"The Battle of Waterloo"],
+[1848,"Revolutions sweep across Europe"],[1860,"Garibaldi's Expedition of the Thousand"],[1861,"The Kingdom of Italy is proclaimed"],[1865,"The American Civil War ends"],
+[1867,"Austria-Hungary is created"],[1869,"The Suez Canal opens"],[1889,"The Eiffel Tower is completed"],[1903,"The Wright brothers' first powered flight"],
+[1912,"The Titanic sinks"],[1914,"The First World War begins"],[1917,"The Russian Revolution"],[1922,"Mussolini's March on Rome"],
+[1929,"The Wall Street Crash"],[1939,"The Second World War begins"],[1944,"The D-Day landings in Normandy"],[1945,"The United Nations is founded"],
+[1946,"Italy votes to become a republic"],[1956,"The Hungarian Revolution"],[1957,"The Soviet Union launches Sputnik"],[1961,"The Berlin Wall is built"],
+[1963,"John F. Kennedy is assassinated"],[1969,"The first Moon landing"],[1974,"ABBA win Eurovision with Waterloo"],[1975,"The Fall of Saigon"],
+[1986,"The Chernobyl disaster"],[1989,"The Berlin Wall falls"],[1991,"The Soviet Union collapses"],[1992,"The Maastricht Treaty is signed"],
+[2001,"The September 11 attacks"],[2002,"Euro coins and notes go into circulation"],[2004,"Facebook is founded"],[2007,"The first iPhone goes on sale"],
+[2013,"BTS debut"],[2016,"The UK votes to leave the EU"],[2021,"Måneskin win Eurovision"]
+];
+const fmtYear = y => y < 0 ? (-y) + " BC" : String(y);
+
+/* ---------- shared bits ---------- */
+const GAME_LABEL = { mystery: "Mystery country", border: "Borders", hl: "Higher or lower", timeline: "Timeline", daily: "Daily challenge" };
+const keyOf = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+function todayKey() { return keyOf(new Date()); }
+const dailyId = (a, b, day) => "daily-" + day + "-" + [a, b].sort().join("-");
+function seeded(str) { let h = 1779033703 ^ str.length; for (let i = 0; i < str.length; i++) { h = Math.imul(h ^ str.charCodeAt(i), 3432918353); h = h << 13 | h >>> 19; } return () => { h = Math.imul(h ^ h >>> 16, 2246822507); h = Math.imul(h ^ h >>> 13, 3266489909); h ^= h >>> 16; return (h >>> 0) / 4294967296; }; }
+const sshuffle = (a, r) => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+function rival() {
+  const me = myUid(), others = Object.keys(players).filter(u => u !== me);
+  if (!others.length) { newDuel(); return null; }
+  return partner() || others[0];
+}
+const node = (code, cls) => h("span", { class: "node " + (cls || "") }, h("span", { class: "gflag", "aria-hidden": "true" }, flagOf(code)), h("span", {}, C[code].name));
+const chainView = codes => h("div", { class: "chain" }, codes.flatMap((c, i) => [i ? h("span", { class: "link", "aria-hidden": "true" }, "→") : null, node(c, i === 0 || i === codes.length - 1 ? "end" : "")]));
+function startGame(k) { return ({ mystery: startMystery, border: startBorder, hl: startHL, timeline: startTimeline })[k](); }
+function playScreen(m) { document.body.classList.remove("withtabs"); ui.busy = true; return () => { ui.busy = false; clearInterval(ui.tick); ui.pick = null; go("/duels"); }; }
+const saver = (m, arr) => () => Promise.resolve(DB.saveAnswers(m.id, myUid(), arr.slice())).catch(e => toast("Not saved: " + (e.code || e.message)));
+
+/* ---------- daily challenge ---------- */
+function dailyStreak() {
+  const me = myUid(), days = new Set(matches.filter(m => m.type === "daily" && isDone(m, me)).map(m => m.day));
+  const d = new Date(); let n = 0;
+  if (!days.has(keyOf(d))) d.setDate(d.getDate() - 1);
+  while (days.has(keyOf(d))) { n++; d.setDate(d.getDate() - 1); }
+  return n;
+}
+function playDaily() {
+  const me = myUid(), opp = rival(); if (!opp) return;
+  const day = todayKey(), id = dailyId(me, opp, day);
+  if (!matches.find(m => m.id === id)) {
+    const r = seeded(id);
+    const qs5 = sshuffle(QBANK, r).slice(0, 5).map(q => ({ id: q.id, cat: q.cat, q: q.q, a: q.a, opts: sshuffle([q.a, ...q.w], r), ...(q.flag ? { flag: q.flag } : {}) }));
+    DB.createMatch({ type: "daily", day, players: [me, opp].sort(), by: me, created: Date.now(), timer: true, qs: qs5 }, id);
+  }
+  go("/play/" + id);
+}
+
+/* ---------- borders ---------- */
+function startBorder() {
+  const opp = rival(); if (!opp) return;
+  const me = myUid(), codes = Object.keys(BORDERS); let r = null, a, b;
+  for (let i = 0; i < 800 && !r; i++) { a = codes[Math.floor(Math.random() * codes.length)]; b = codes[Math.floor(Math.random() * codes.length)]; const p = route(a, b); if (p && p.length >= 4 && p.length <= 7) r = p; }
+  const id = DB.createMatch({ type: "border", players: [me, opp], by: me, created: Date.now(), start: a, target: b, par: r.length - 2, answers: { [me]: [], [opp]: [] } });
+  go("/play/" + id);
+}
+function playBorder(m) {
+  const me = myUid(), opp = m.players.find(p => p !== me), S = C[m.start], T = C[m.target];
+  if (isDone(m, me)) { go("/duel/" + m.id); return; }
+  const leave = playScreen(m), chain = answers(m, me).filter(x => x !== "?"), save = saver(m, chain);
+  const count = h("b", { class: "gcount" }), chainEl = h("div"), msg = h("p", { class: "status", role: "status" });
+  const input = h("input", { type: "text", id: "bd-in", list: "bd-list", autocomplete: "off", autocapitalize: "words", spellcheck: "false", placeholder: "Next country", enterkeyhint: "go", "aria-label": "Next country" });
+  const dl = h("datalist", { id: "bd-list" }, Object.keys(BORDERS).map(c => C[c].name).sort().map(n => h("option", { value: n })));
+  const undo = h("button", { class: "btn ghost", type: "button", onclick: () => { chain.pop(); save(); msg.textContent = ""; draw(); } }, "Undo");
+  const give = h("div", { class: "confirm" });
+  const drawGive = ask => give.replaceChildren(...(ask ? [h("span", {}, "Give up?"), h("button", { class: "btn danger", type: "button", onclick: () => { Promise.resolve(DB.saveAnswers(m.id, me, [...chain, "?"])).catch(() => {}); reveal(false); } }, "Give up"), h("button", { class: "btn ghost", type: "button", onclick: () => drawGive(false) }, "Keep going")] : [undo, h("button", { class: "btn ghost", type: "button", onclick: () => drawGive(true) }, "Give up")]));
+  const draw = () => {
+    count.textContent = chain.length + (chain.length === 1 ? " country" : " countries");
+    chainEl.replaceChildren(h("div", { class: "chain" }, node(m.start, "end"), ...chain.flatMap(c => [h("span", { class: "link" }, "→"), node(c)]), h("span", { class: "link" }, "→"), node(m.target, "end ghost")));
+    undo.disabled = !chain.length;
+  };
+  const reveal = won => mount(topbar(leave, count),
+    h("div", { class: "panel reveal" }, h("span", { class: "label" }, won ? "Connected" : "Shortest route"),
+      h("h1", {}, won ? chain.length + (chain.length === 1 ? " country" : " countries") : S.name + " to " + T.name),
+      h("p", { class: "muted" }, won ? (chain.length <= m.par ? "That's the shortest possible route." : "The shortest route needs " + m.par + ".") : "It could be done with " + m.par + "."),
+      h("button", { class: "btn primary", type: "button", onclick: () => { ui.busy = false; go("/duel/" + m.id); } }, "See the duel")),
+    won ? h("section", { class: "sect" }, h("h3", {}, "Your route"), chainView([m.start, ...chain, m.target])) : null,
+    h("section", { class: "sect" }, h("h3", {}, "A shortest route"), chainView(route(m.start, m.target))));
+  const submit = e => {
+    e.preventDefault();
+    const code = BYNAME[norm(input.value)], last = chain.length ? chain[chain.length - 1] : m.start;
+    if (code && !BORDERS[code]) { msg.textContent = C[code].name + " has no land borders in this game."; return; }
+    if (!code) { msg.textContent = input.value.trim() ? "Pick a country from the suggestions." : ""; return; }
+    if (code === m.start || chain.includes(code)) { msg.textContent = C[code].name + " is already in your route."; input.value = ""; return; }
+    if (code === m.target) { msg.textContent = T.name + " is the finish. Get to a country next to it."; input.value = ""; return; }
+    if (!bordersOf(last).includes(code)) { msg.textContent = C[code].name + " does not border " + C[last].name + "."; return; }
+    chain.push(code); input.value = ""; msg.textContent = ""; save(); draw();
+    if (bordersOf(code).includes(m.target)) reveal(true); else input.focus();
+  };
+  draw(); drawGive(false);
+  mount(topbar(leave, count),
+    h("header", { class: "titlepage" }, h("div", { class: "kicker" }, "Borders"), h("h1", {}, S.name + " to " + T.name),
+      h("p", {}, "Build a route through neighbouring countries, one border at a time. Fewest countries wins. The shortest route needs " + m.par + ".")),
+    chainEl, h("form", { class: "guessform", onsubmit: submit }, input, dl, h("button", { class: "btn primary", type: "submit" }, "Add")), msg, give);
+  input.focus();
+}
+
+/* ---------- higher or lower ---------- */
+function startHL() {
+  const opp = rival(); if (!opp) return;
+  const me = myUid(), codes = Object.keys(STATS), pairs = [];
+  while (pairs.length < 40) {
+    const a = codes[Math.floor(Math.random() * codes.length)], b = codes[Math.floor(Math.random() * codes.length)];
+    if (a === b) continue;
+    const k = Math.random() < 0.5 ? "pop" : "area", i = k === "pop" ? 0 : 1, x = STATS[a][i], y = STATS[b][i];
+    if (Math.max(x, y) / Math.min(x, y) < 1.3) continue;
+    pairs.push({ a, b, k });
+  }
+  const id = DB.createMatch({ type: "hl", players: [me, opp], by: me, created: Date.now(), pairs, answers: { [me]: [], [opp]: [] } });
+  go("/play/" + id);
+}
+function playHL(m) {
+  const me = myUid();
+  if (isDone(m, me)) { go("/duel/" + m.id); return; }
+  const leave = playScreen(m), a = [...answers(m, me)], save = saver(m, a), streak = h("b", { class: "gcount" });
+  const step = () => {
+    const i = a.length;
+    if (i >= m.pairs.length || a.some(x => !x.ok)) { ui.busy = false; ui.pick = null; go("/duel/" + m.id); return; }
+    const P = m.pairs[i], idx = P.k === "pop" ? 0 : 1, val = c => STATS[c][idx];
+    streak.textContent = "Streak " + a.filter(x => x.ok).length;
+    let done = false; const foot = h("div", { class: "qfoot" });
+    const card = c => h("button", { class: "hlcard", type: "button", onclick: () => choose(c) }, h("span", { class: "hlflag", "aria-hidden": "true" }, flagOf(c)), h("b", {}, C[c].name), h("span", { class: "hlval" }));
+    const cards = [card(P.a), card(P.b)];
+    function choose(c) {
+      if (done) return; done = true; ui.pick = null;
+      const other = c === P.a ? P.b : P.a, ok = val(c) > val(other);
+      a.push({ c, ok }); save();
+      [P.a, P.b].forEach((cc, k) => { const el = cards[k], big = val(cc) > val(cc === P.a ? P.b : P.a); el.disabled = true; el.querySelector(".hlval").textContent = fmtStat(P.k, val(cc)); el.classList.add(big ? "right" : "dim"); if (cc === c && !ok) el.classList.add("wrong"); });
+      const n = a.filter(x => x.ok).length; streak.textContent = "Streak " + n;
+      const next = h("button", { class: "btn primary", type: "button", onclick: step }, ok ? (a.length >= m.pairs.length ? "See the duel" : "Next") : "See the duel");
+      foot.replaceChildren(h("span", { class: "verdict " + (ok ? "good" : "bad"), role: "status" }, ok ? "Correct" : "Streak over at " + n), next); next.focus();
+    }
+    ui.pick = k => cards[k]?.click();
+    mount(topbar(leave, streak), h("header", { class: "titlepage" }, h("div", { class: "kicker" }, "Higher or lower"), h("h1", {}, P.k === "pop" ? "Which has more people?" : "Which is bigger?")),
+      h("div", { class: "hlgrid" }, cards), foot);
+    window.scrollTo(0, 0);
+  };
+  step();
+}
+
+/* ---------- timeline ---------- */
+function startTimeline() {
+  const opp = rival(); if (!opp) return;
+  const me = myUid(), years = new Set(), pick = [];
+  for (const [y, t] of shuffle(EVENTS)) { if (years.has(y)) continue; years.add(y); pick.push({ y, t }); if (pick.length === 25) break; }
+  const rounds = [0, 1, 2, 3, 4].map(r => ({ ev: pick.slice(r * 5, r * 5 + 5) }));
+  const id = DB.createMatch({ type: "timeline", players: [me, opp], by: me, created: Date.now(), rounds, answers: { [me]: [], [opp]: [] } });
+  go("/play/" + id);
+}
+const tlCorrect = evs => evs.map((e, i) => i).sort((x, y) => evs[x].y - evs[y].y);
+function playTimeline(m) {
+  const me = myUid();
+  if (isDone(m, me)) { go("/duel/" + m.id); return; }
+  const leave = playScreen(m), a = [...answers(m, me)], save = saver(m, a), total = h("b", { class: "gcount" });
+  const step = () => {
+    const r = a.length;
+    if (r >= m.rounds.length) { ui.busy = false; go("/duel/" + m.id); return; }
+    total.textContent = a.reduce((s, x) => s + x.pts, 0) + " pts";
+    const evs = m.rounds[r].ev; let order = [];
+    const list = h("div", { class: "tl" }), foot = h("div", { class: "qfoot" });
+    const lock = h("button", { class: "btn primary", type: "button" }, "Lock in"), reset = h("button", { class: "btn ghost", type: "button", onclick: () => { order = []; draw(); } }, "Reset");
+    const draw = () => {
+      list.replaceChildren(...evs.map((e, i) => { const pos = order.indexOf(i); return h("button", { class: "tlev" + (pos >= 0 ? " set" : ""), type: "button", onclick: () => { pos >= 0 ? order.splice(pos, 1) : order.push(i); draw(); } }, h("span", { class: "tlnum" }, pos >= 0 ? pos + 1 : ""), h("span", {}, e.t)); }));
+      lock.disabled = order.length < evs.length;
+    };
+    lock.onclick = () => {
+      const correct = tlCorrect(evs), p = order.filter((ix, k) => correct[k] === ix).length;
+      a.push({ order: order.slice(), pts: p }); save();
+      total.textContent = a.reduce((s, x) => s + x.pts, 0) + " pts";
+      list.replaceChildren(...correct.map((ix, k) => { const mine = order.indexOf(ix), ok = mine === k; return h("div", { class: "tlev done " + (ok ? "ok" : "no") }, h("span", { class: "tlyear" }, fmtYear(evs[ix].y)), h("span", {}, evs[ix].t, ok ? null : h("small", { class: "faint" }, " · you put it " + (mine + 1))), h("span", { class: "ic" }, ok ? "✓" : "✗")); }));
+      foot.replaceChildren(h("span", { class: "verdict " + (p >= 3 ? "good" : "bad"), role: "status" }, p + " of 5 in the right spot"), h("button", { class: "btn primary", type: "button", onclick: step }, a.length >= m.rounds.length ? "See the duel" : "Next round"));
+    };
+    foot.replaceChildren(reset, lock); draw();
+    mount(topbar(leave, total), h("header", { class: "titlepage" }, h("div", { class: "kicker" }, "Timeline · round " + (r + 1) + " of " + m.rounds.length), h("h1", {}, "Oldest to newest"), h("p", {}, "Tap the events in the order they happened. Tap one again to take it back.")), list, foot);
+    window.scrollTo(0, 0);
+  };
+  step();
+}
+
+/* ---------- result screen for borders, higher or lower, timeline ---------- */
+function renderGameDuel(m) {
+  const me = myUid(), opp = m.players.find(p => p !== me), k = kindOf(m), meDone = isDone(m, me), oppDone = isDone(m, opp), fin = finished(m);
+  const unit = u => k === "border" ? (gaveUp(m, u) ? "gave up" : "countries") : k === "hl" ? "in a row" : "of " + m.rounds.length * 5;
+  const side = (u, show, right) => h("div", { class: "pl" + (right ? " r" : ""), style: { "--c": pColor(u) } }, h("span", { class: "nm" }, u === me ? "You" : pName(u)),
+    h("span", { class: "sc" }, show ? shortScore(m, u) : "?"), h("span", { class: "faint", style: { "font-size": "13px" } }, isDone(m, u) ? unit(u) : answers(m, u).length ? "playing" : "not started"));
+  const w = fin ? winnerOf(m) : null;
+  let extra = [];
+  if (meDone && k === "border") {
+    const routeOf = u => [m.start, ...answers(m, u).filter(x => x !== "?"), ...(gaveUp(m, u) ? [] : [m.target])];
+    extra = [h("p", { class: "muted" }, "From " + C[m.start].name + " to " + C[m.target].name + ". The shortest route needs " + m.par + "."),
+      h("section", { class: "sect" }, h("h3", {}, "Your route"), gaveUp(m, me) ? h("p", { class: "empty" }, "You gave up.") : chainView(routeOf(me))),
+      oppDone ? h("section", { class: "sect" }, h("h3", {}, pName(opp) + "'s route"), gaveUp(m, opp) ? h("p", { class: "empty" }, pName(opp) + " gave up.") : chainView(routeOf(opp))) : null,
+      h("section", { class: "sect" }, h("h3", {}, "A shortest route"), chainView(route(m.start, m.target)))];
+  }
+  if (meDone && k === "timeline") {
+    extra = [h("section", { class: "sect" }, h("h3", {}, "Round by round"), h("div", { class: "review" }, m.rounds.map((R, ri) => {
+      const correct = tlCorrect(R.ev), mo = answers(m, me)[ri]?.order || [], oo = oppDone ? (answers(m, opp)[ri]?.order || []) : null;
+      return h("div", { class: "rv" }, h("span", { class: "label" }, "Round " + (ri + 1)), correct.map((ix, kk) => h("div", { class: "tlrow" }, h("span", { class: "tlyear" }, fmtYear(R.ev[ix].y)), h("span", {}, R.ev[ix].t),
+        h("span", { class: "tlmk" }, h("span", { class: mo[kk] === ix ? "okc" : "noc" }, mo[kk] === ix ? "✓" : "✗"), oo ? h("span", { class: oo[kk] === ix ? "okc" : "noc", title: pName(opp) }, oo[kk] === ix ? "✓" : "✗") : null))));
+    })), h("p", { class: "faint", style: { "font-size": "13px" } }, oppDone ? "First mark is you, second is " + pName(opp) + "." : ""))];
+  }
+  if (meDone && k === "hl") extra = [h("p", { class: "muted", style: { "text-align": "center" } }, "Same 40 pairs for both of you. Longest streak wins.")];
+  mount(
+    topbar(() => go("/duels"), h("span", { class: "faint" }, GAME_LABEL[k] + " · " + fmtDate(m.created))),
+    fin ? h("div", { class: "banner", style: { color: w === "tie" ? "var(--ink)" : pColor(w) } }, w === "tie" ? "It's a tie" : w === me ? "You win!" : pName(w) + " wins") : null,
+    h("div", { class: "board" }, side(me, true), h("div", { class: "mid" }, LOWER_WINS[k] ? ["fewer", h("br"), "wins"] : "vs"), side(opp, meDone && oppDone, true)),
+    meDone && !oppDone ? h("p", { class: "muted", style: { "text-align": "center" } }, pName(opp) + " has not finished yet. Their score shows up once they do.") : null,
+    h("div", { class: "actions" },
+      !meDone ? h("button", { class: "btn primary", type: "button", onclick: () => go("/play/" + m.id) }, answers(m, me).length ? "Continue" : "Play now") : null,
+      fin ? h("button", { class: "btn primary", type: "button", onclick: () => startGame(k) }, "Rematch") : null),
+    ...extra,
+    deleteControl(m.id));
+}
+
+/* ---------- duels list and detail ---------- */
+function duelRow(m) {
+  const me = myUid(), opp = m.players.find(p => p !== me);
+  let st;
+  if (!isDone(m, me)) st = h("span", { class: "pill turn" }, answers(m, me).length ? "Continue" : "Your turn");
+  else if (isMys(m) && !finished(m)) st = h("span", { class: "pill" }, "Waiting");
+  else if (!finished(m)) st = h("span", { class: "pill" }, "Waiting");
+  else { const w = winnerOf(m), sh = u => shortScore(m, u); st = [h("span", {}, sh(me) + " : " + sh(opp)), h("span", { class: "pill " + (w === "tie" ? "" : w === me ? "win" : "loss") }, w === "tie" ? "Tie" : w === me ? "Won" : "Lost")]; }
+  return h("button", { class: "drow", type: "button", onclick: () => go("/duel/" + m.id) }, avatar(opp),
+    h("div", { class: "dmain" }, h("b", {}, "vs " + pName(opp)), h("small", {}, fmtDate(m.created) + " · " + (m.type ? GAME_LABEL[m.type] : (m.qs || []).length + " questions" + (m.withUs ? " + Us" : "") + (m.bets ? " · bets" : "")))),
+    h("div", { class: "dstate" }, st));
+}
+function renderDuels() {
+  const me = myUid(), all = [...matches].sort((a, b) => b.created - a.created);
+  const turn = all.filter(m => !isDone(m, me)), wait = all.filter(m => isDone(m, me) && !finished(m)), fin = all.filter(finished);
+  const sect = (title, list, empty) => h("section", { class: "sect" }, h("h3", {}, title), list.length ? list.map(duelRow) : h("p", { class: "empty" }, empty));
+  mount(
+    h("header", { class: "titlepage" }, h("div", { class: "kicker" }, "Duels"), h("h1", {}, "Your matches")),
+    h("button", { class: "btn primary", type: "button", onclick: () => newDuel() }, "New duel"),
+    sect("Your turn", turn, "Nothing to play right now."),
+    sect("Waiting for them", wait, "No duels waiting."),
+    sect("Finished", fin.slice(0, 30), "Finished duels show up here."));
+}
+function renderDuel(mid) {
+  const m = matches.find(x => x.id === mid), me = myUid();
+  if (!m) { mount(topbar(() => go("/duels")), h("p", { class: "muted" }, "This duel is not here anymore.")); return; }
+  if (isMys(m)) return renderMysteryDuel(m);
+  if (!quizLike(m)) return renderGameDuel(m);
+  const opp = m.players.find(p => p !== me), meDone = isDone(m, me), oppDone = isDone(m, opp), fin = finished(m);
+  const side = (u, show, right) => h("div", { class: "pl" + (right ? " r" : ""), style: { "--c": pColor(u) } }, h("span", { class: "nm" }, u === me ? "You" : pName(u)),
+    h("span", { class: "sc" }, show ? pts(m, u) : "?"), h("span", { class: "faint", style: { "font-size": "13px" } }, isDone(m, u) ? "done" : answers(m, u).length + " of " + myQs(m, u).length));
+  const w = fin ? winnerOf(m) : null;
+  const banner = fin ? h("div", { class: "banner", style: { color: w === "tie" ? "var(--ink)" : pColor(w) } }, w === "tie" ? "It's a tie" : w === me ? "You win!" : pName(w) + " wins") : null;
+  const status = !meDone ? null : !oppDone ? h("p", { class: "muted", style: { "text-align": "center" } }, pName(opp) + " has not finished yet. Their score shows up once they do.") : null;
+  const del = h("div", { class: "confirm" });
+  const drawDel = (ask) => del.replaceChildren(...(ask ? [h("span", {}, "Delete this duel for both of you?"), h("button", { class: "btn danger", type: "button", onclick: async () => { await DB.deleteMatch(mid); toast("Duel deleted"); go("/duels"); } }, "Delete"), h("button", { class: "btn ghost", type: "button", onclick: () => drawDel(false) }, "Keep")] : [h("button", { class: "btn ghost danger", type: "button", onclick: () => drawDel(true) }, "Delete duel")]));
+  drawDel(false);
+  const mark = (a, label) => !a ? h("div", { class: "mk" }, h("span", { class: "ic faint" }, "·"), h("span", { class: "faint" }, label + ": not yet")) :
+    h("div", { class: "mk " + (a.ok ? "ok" : "no") }, h("span", { class: "ic" }, a.ok ? "✓" : "✗"), h("span", {}, label + ": " + (a.c == null ? "no answer" : a.c) + (a.ok ? " (+" + a.pts + ")" : "")));
+  const rv = (q, mine, theirs, showTheirs) => h("div", { class: "rv" }, h("span", { class: "qq" }, q.flag ? h("span", { class: "rflag" }, q.flag) : null, q.q), h("span", { class: "ans" }, "Answer: ", h("b", {}, q.a)),
+    h("div", { class: "marks" }, mark(mine, "You"), showTheirs ? mark(theirs, pName(opp)) : null));
+  const mineA = answers(m, me), theirA = answers(m, opp), shared = m.qs || [], usMine = (m.us || {})[me] || [], usTheirs = (m.us || {})[opp] || [];
+  mount(
+    topbar(() => go("/duels"), h("span", { class: "faint" }, fmtDate(m.created))),
+    banner,
+    h("div", { class: "board" }, side(me, true), h("div", { class: "mid" }, "vs"), side(opp, meDone && oppDone, true)),
+    status,
+    h("div", { class: "actions" },
+      !meDone ? h("button", { class: "btn primary", type: "button", onclick: () => go("/play/" + mid) }, mineA.length ? "Continue playing" : "Play now") : null,
+      fin && !m.type ? h("button", { class: "btn primary", type: "button", onclick: () => createDuel(opp, m.cats, m.n, m.timer, m.withUs, m.bets) }, "Rematch") : null),
+    meDone ? h("section", { class: "sect" }, h("h3", {}, "Question by question"),
+      h("div", { class: "review" }, shared.map((q, i) => rv(q, mineA[i], theirA[i], meDone)))) : h("p", { class: "muted" }, "Play your round to see the answers."),
+    meDone && (usMine.length || usTheirs.length) ? h("section", { class: "sect" }, h("h3", {}, "About each other"),
+      h("div", { class: "review" },
+        usMine.map((q, i) => h("div", { class: "rv" }, h("span", { class: "label" }, "Written by " + pName(opp)), h("span", { class: "qq" }, q.q), h("span", { class: "ans" }, "Answer: ", h("b", {}, q.a)), h("div", { class: "marks" }, mark(mineA[shared.length + i], "You")))),
+        usTheirs.map((q, i) => h("div", { class: "rv" }, h("span", { class: "label" }, "Written by you"), h("span", { class: "qq" }, q.q), h("span", { class: "ans" }, "Answer: ", h("b", {}, q.a)), h("div", { class: "marks" }, mark(theirA[shared.length + i], pName(opp))))))) : null,
+    del);
+}
+
+/* ---------- Us: questions about yourselves ---------- */
+function renderUs() {
+  const me = myUid(), opp = partner(), mine = qs.filter(q => q.by === me).sort((a, b) => (b.created || 0) - (a.created || 0)), theirs = opp ? qs.filter(q => q.by === opp).length : 0;
+  const inp = (id, ph) => h("input", { type: "text", id, placeholder: ph, required: true, maxlength: 140 });
+  const q = inp("us-q", "Where did we first meet?"), a = inp("us-a", "The right answer"), w1 = inp("us-w1", "Wrong answer"), w2 = inp("us-w2", "Wrong answer"), w3 = inp("us-w3", "Wrong answer");
+  const msg = h("p", { class: "status" });
+  const submit = async e => {
+    e.preventDefault();
+    const d = { by: me, q: q.value.trim(), a: a.value.trim(), w: [w1, w2, w3].map(x => x.value.trim()), created: Date.now() };
+    if (new Set([d.a, ...d.w].map(x => x.toLowerCase())).size < 4) { msg.textContent = "The four answers need to be different."; return; }
+    try { await DB.addQ(d); toast("Question added"); e.target.reset(); q.focus(); } catch (err) { msg.textContent = "Could not save: " + (err.code || err.message); }
+  };
+  mount(
+    h("header", { class: "titlepage" }, h("div", { class: "kicker" }, "Us"), h("h1", {}, "How well do you know me?"),
+      h("p", {}, "Write questions about yourself. They get mixed into duels" + (opp ? " for " + pName(opp) : "") + ", and you get the ones " + (opp ? pName(opp) : "your partner") + " writes about themselves.")),
+    opp ? h("p", { class: "muted" }, theirs ? pName(opp) + " has written " + theirs + (theirs === 1 ? " question" : " questions") + " about themselves for you. No peeking." : pName(opp) + " has not written any yet.") : null,
+    h("form", { class: "panel", onsubmit: submit }, h("h2", {}, "Add a question"), field("Question", q), field("Right answer", a),
+      h("div", { class: "field" }, h("span", {}, "Three wrong answers"), w1, w2, w3), h("button", { class: "btn primary", type: "submit" }, "Add question"), msg),
+    h("section", { class: "sect" }, h("h3", {}, "Your questions (" + mine.length + ")"),
+      mine.length ? h("ul", { class: "qlist" }, mine.map(x => h("li", {}, h("span", {}, x.q, h("br"), h("small", {}, x.a)), h("button", { class: "x", type: "button", "aria-label": "Delete question", onclick: () => DB.delQ(x.id) }, "✕")))) : h("p", { class: "empty" }, "None yet. Try your favourite pizza, your first concert or where you would live if you could choose.")));
+}
+
+/* ---------- Me ---------- */
+function renderMe() {
+  const me = myUid(), p = players[me] || {}, rec = record(me);
+  const mysF = matches.filter(m => isMys(m) && found(m, me)), all = matches.filter(m => quizLike(m)).flatMap(m => answers(m, me).map((a, i) => ({ ...a, cat: myQs(m, me)[i]?.cat })));
+  const right = all.filter(a => a.ok).length, acc = all.length ? Math.round(right / all.length * 100) : 0;
+  const cats = [...CATS, "Us"].map(c => { const xs = all.filter(a => a.cat === c); return { c, n: xs.length, pct: xs.length ? Math.round(xs.filter(a => a.ok).length / xs.length * 100) : 0 }; }).filter(x => x.n);
+  const avg = all.filter(a => a.ok).length ? (all.filter(a => a.ok).reduce((s, a) => s + a.ms, 0) / right / 1000).toFixed(1) : "–";
+  const name = h("input", { type: "text", id: "me-name", value: p.name || "", maxlength: 20 });
+  let color = p.color || COLORS[0];
+  const sw = h("div", { class: "swatches" });
+  const drawSw = () => sw.replaceChildren(...COLORS.map(c => h("button", { class: "sw", type: "button", style: { "--c": c }, "aria-label": "Colour " + c, "aria-pressed": String(c === color), onclick: () => { color = c; drawSw(); } })));
+  drawSw();
+  const stat = (n, l) => h("div", { class: "stat" }, h("b", {}, n), h("span", {}, l));
+  const others = Object.keys(players).filter(u => u !== me);
+  mount(
+    h("header", { class: "titlepage" }, h("div", { class: "kicker" }, "Me"), h("h1", {}, p.name || "You")),
+    h("div", { class: "stats" }, stat(rec.w + rec.l + rec.t, "duels"), stat(rec.w, "won"), stat(rec.l, "lost"), stat(rec.t, "tied")),
+    mysF.length ? h("div", { class: "stats" }, stat(mysF.length, "mystery countries found"), stat((mysF.reduce((s, m) => s + guesses(m, me), 0) / mysF.length).toFixed(1), "avg guesses"), stat(Math.min(...mysF.map(m => guesses(m, me))), "fewest guesses"), stat(matches.filter(m => isMys(m) && isDone(m, me) && !found(m, me)).length, "gave up")) : null,
+    h("div", { class: "stats" }, stat(acc + "%", "right answers"), stat(all.length, "questions"), stat(avg + "s", "avg time when right"), stat(Math.max(0, ...matches.filter(m => quizLike(m)).map(m => isDone(m, me) ? pts(m, me) : 0)), "best score")),
+    cats.length ? h("section", { class: "panel" }, h("h2", {}, "By category"), h("div", { class: "bars" }, cats.sort((a, b) => b.pct - a.pct).map(x => h("div", { class: "bar" }, h("span", {}, x.c === "Us" ? "About you two" : x.c), h("div", { class: "track" }, h("i", { style: { width: x.pct + "%", "--c": pColor(me) } })), h("span", { class: "v" }, x.pct + "%"))))) : null,
+    h("section", { class: "panel" }, h("h2", {}, "Profile"), field("Name", name), h("div", { class: "field" }, h("span", {}, "Colour"), sw),
+      h("button", { class: "btn primary", type: "button", onclick: async () => { const n = name.value.trim(); if (!n) { toast("Add a name"); return; } await DB.savePlayer(me, { name: n, color }); toast("Saved"); } }, "Save")),
+    h("section", { class: "panel" }, h("h2", {}, "Laura\u2019s surprise"), h("p", { class: "muted" }, "What Laura sees the first time she opens her link, the app link with ?laura at the end."), h("div", { class: "actions" }, h("button", { class: "btn", type: "button", onclick: () => window.openGift({ preview: true }) }, "Preview the surprise"))),
+    h("section", { class: "panel" }, h("h2", {}, "Install on your phone"),
+      h("p", { class: "muted" }, "On iPhone open the link in Safari, tap Share, then Add to Home Screen. On Android open it in Chrome and tap Install app."), copyLink()),
+    h("section", { class: "panel" }, h("h2", {}, DB.mode === "local" ? "Players on this phone" : "This phone"),
+      DB.mode === "local" ? h("p", { class: "muted" }, "Sync is off, so everything stays on this phone. " + (others.length ? "Switch player to take your turn in a duel." : "Add a second player to duel on this phone.")) : h("p", { class: "muted" }, "On this phone you play as " + pName(user.uid) + ". Leaving keeps all your games, you just need the code to come back."),
+      h("div", { class: "actions" }, DB.mode === "local" ? h("button", { class: "btn", type: "button", onclick: () => DB.use(null) }, "Switch player") : h("button", { class: "btn", type: "button", onclick: () => DB.signOut() }, "Leave on this phone"))));
+}
+
+/* ---------- same phone ---------- */
+function renderLocal() {
+  document.body.classList.remove("withtabs");
+  const me = myUid(), opp = partner();
+  const n1 = h("input", { type: "text", id: "ln1", value: pName(me), maxlength: 20 }), n2 = h("input", { type: "text", id: "ln2", value: opp ? pName(opp) : "Player 2", maxlength: 20 });
+  const cats = catPicker(), len = seg("Questions each", [5, 8, 12], 8), tm = toggle("l-timer", "20s timer with speed bonus", true);
+  const startBtn = h("button", { class: "btn primary wide", type: "button" }, "Start"), hint = h("p", { class: "status" });
+  const check = () => { const have = QBANK.filter(q => cats.get().includes(q.cat)).length, need = len.get() * 2; startBtn.disabled = have < need; hint.textContent = have < need ? "You need " + need + " questions and these categories have " + have + "." : ""; };
+  cats.onChange(check); len.onChange(check); check();
+  startBtn.onclick = () => startLocal([n1.value.trim() || "Player 1", n2.value.trim() || "Player 2"], [pColor(me), opp ? pColor(opp) : COLORS[1]], pickQs(cats.get(), len.get() * 2, new Set()), tm.get());
+  mount(topbar(() => go("/")),
+    h("header", { class: "titlepage" }, h("div", { class: "kicker" }, "Same phone"), h("h1", {}, "Pass and play"), h("p", {}, "Take turns on one phone and hand it over after each answer. Nothing gets saved to your duels.")),
+    h("div", { class: "panel" }, h("div", { class: "two" }, field("Player 1", n1), field("Player 2", n2)), cats.el, h("div", { class: "setrow" }, len.el, tm.el), startBtn, hint));
+  ui.busy = true;
+}
+function startLocal(names, colors, list, timer) {
+  if (colors[0] === colors[1]) colors = [colors[0], COLORS.find(c => c !== colors[0])];
+  const G = { names, colors, list, timer, score: [0, 0], right: [0, 0], i: 0 };
+  ui.busy = true;
+  const leave = () => { ui.busy = false; clearInterval(ui.tick); ui.pick = null; go("/"); };
+  const board = () => { const cur = G.i % 2; return h("div", { class: "board" },
+    ...[0, 1].flatMap(p => { const el = h("div", { class: "pl" + (p ? " r" : "") + (cur === p ? " on" : ""), style: { "--c": G.colors[p] } }, h("span", { class: "nm" }, G.names[p]), h("span", { class: "sc", id: "lsc" + p }, G.score[p])); return p ? [h("div", { class: "mid" }, "Question", h("b", {}, Math.min(G.i + 1, G.list.length) + "/" + G.list.length)), el] : [el]; })); };
+  const handoff = () => { const p = G.i % 2;
+    mount(topbar(leave), board(), h("div", { class: "panel handoff" }, h("span", { class: "label" }, "Pass the phone to"), h("span", { class: "who", style: { color: G.colors[p] } }, G.names[p]),
+      h("button", { class: "btn primary", type: "button", id: "ready", onclick: ask }, "I'm ready")));
+    document.getElementById("ready").focus(); };
+  const ask = () => { const p = G.i % 2;
+    mount(topbar(leave), board(), questionCard({ q: G.list[G.i], idx: Math.floor(G.i / 2), total: G.list.length / 2, label: G.names[p] + "'s turn", color: G.colors[p], timer: G.timer,
+      onDone: (res, next) => { G.score[p] += res.pts; if (res.ok) G.right[p]++; document.getElementById("lsc" + p).textContent = G.score[p];
+        const last = G.i + 1 >= G.list.length; next.textContent = last ? "See results" : "Pass to " + G.names[1 - p]; next.onclick = () => { G.i++; last ? end() : handoff(); }; } })); };
+  const end = () => { const [a, b] = G.score;
+    mount(topbar(() => go("/")), h("div", { class: "banner", style: { color: a === b ? "var(--ink)" : G.colors[a > b ? 0 : 1] } }, a === b ? "It's a tie!" : G.names[a > b ? 0 : 1] + " wins!"),
+      h("div", { class: "board" }, ...[0, 1].flatMap(p => { const el = h("div", { class: "pl" + (p ? " r" : ""), style: { "--c": G.colors[p] } }, h("span", { class: "nm" }, G.names[p]), h("span", { class: "sc" }, G.score[p]), h("span", { class: "faint", style: { "font-size": "13px" } }, G.right[p] + " of " + G.list.length / 2 + " right")); return p ? [h("div", { class: "mid" }, "final"), el] : [el]; })),
+      h("div", { class: "actions" }, h("button", { class: "btn primary", type: "button", onclick: () => startLocal(G.names, G.colors, pickQs(CATS, G.list.length, new Set()), G.timer) }, "Rematch"), h("button", { class: "btn", type: "button", onclick: () => { ui.busy = false; render(); } }, "Change settings"))); };
+  handoff();
+}
+
+/* ---------- sign in, new player ---------- */
+function renderAuth() {
+  let w = GIFT_LINK ? "laura" : null;
+  const pick = h("div", { class: "two" }), msg = h("div", { class: "status", role: "status" });
+  const drawPick = () => pick.replaceChildren(...[["jacopo", "Jacopo", COLORS[0]], ["laura", "Laura", COLORS[1]]].map(([id, name, c]) =>
+    h("button", { class: "whobtn", type: "button", style: { "--c": c }, "aria-pressed": String(w === id), onclick: () => { w = id; drawPick(); code.focus(); } }, h("span", { class: "av", style: { "--c": c } }, name[0]), name)));
+  const code = h("input", { type: "password", id: "join-code", autocomplete: "off", required: true, placeholder: "Your secret code" });
+  const btn = h("button", { class: "btn primary", type: "submit" }, "Let me in");
+  const submit = async e => {
+    e.preventDefault();
+    if (!w) { msg.textContent = "Tap who you are first."; return; }
+    btn.disabled = true; msg.textContent = "Checking";
+    try { await DB.join(code.value.trim(), w); }
+    catch (err) { msg.textContent = err.code === "permission-denied" ? "That code is not right." : err.code === "auth/operation-not-allowed" ? "Anonymous sign-in is not switched on in Firebase yet." : "Could not join: " + (err.code || err.message); btn.disabled = false; }
+  };
+  drawPick();
+  mount(
+    h("header", { class: "titlepage" }, h("div", { class: "kicker" }, "Trivia Duel"), h("h1", {}, h("span", { class: "a" }, "Duel"), " di ", h("span", { class: "b" }, "Trivia")), h("p", {}, "A private game for Jacopo and Laura. No email needed, just your secret code.")),
+    h("form", { class: "panel", onsubmit: submit }, h("span", { class: "label" }, "Who are you?"), pick, field("Secret code", code), btn, msg,
+      h("p", { class: "faint", style: { "font-size": "13px" } }, "You only do this once on each phone.")));
+}
+function playerForm(title, sub, onSave) {
+  const name = h("input", { type: "text", id: "np-name", required: true, maxlength: 20, placeholder: "Your name", value: ({ jacopo: "Jacopo", laura: "Laura" })[myUid()] || "" });
+  const taken = Object.values(players).map(p => p.color);
+  let color = COLORS.find(c => !taken.includes(c)) || COLORS[0];
+  const sw = h("div", { class: "swatches" });
+  const drawSw = () => sw.replaceChildren(...COLORS.map(c => h("button", { class: "sw", type: "button", style: { "--c": c }, "aria-label": "Colour " + c, "aria-pressed": String(c === color), onclick: () => { color = c; drawSw(); } })));
+  drawSw();
+  return h("form", { class: "panel", onsubmit: e => { e.preventDefault(); onSave({ name: name.value.trim(), color, created: Date.now() }); } },
+    h("h2", {}, title), sub ? h("p", { class: "muted" }, sub) : null, field("Name", name), h("div", { class: "field" }, h("span", {}, "Your colour"), sw), h("button", { class: "btn primary", type: "submit" }, "Continue"));
+}
+function renderPrivate() {
+  mount(h("header", { class: "titlepage" }, h("div", { class: "kicker" }, "Trivia Duel"), h("h1", {}, "Private game"),
+      h("p", {}, "This phone is not unlocked yet. Enter the secret code again.")),
+    h("div", { class: "actions" }, h("button", { class: "btn primary", type: "button", onclick: () => DB.signOut() }, "Enter the code")));
+}
+function renderNewPlayer() {
+  mount(h("header", { class: "titlepage" }, h("div", { class: "kicker" }, "Welcome"), h("h1", {}, "Pick your player")),
+    playerForm("What should we call you?", "This is the name your rival sees.", async d => { await DB.savePlayer(myUid(), d); }));
+}
+function renderWho() {
+  const list = Object.entries(players).sort((a, b) => a[1].created - b[1].created);
+  mount(h("header", { class: "titlepage" }, h("div", { class: "kicker" }, "Trivia Duel"), h("h1", {}, list.length ? "Who's playing?" : "Pick your player"), h("p", {}, "Sync is off, so players live on this phone.")),
+    list.length ? h("div", { class: "who-list" }, list.map(([u]) => h("button", { class: "drow", type: "button", onclick: () => DB.use(u) }, avatar(u), h("div", { class: "dmain" }, h("b", {}, pName(u)))))) : null,
+    playerForm(list.length ? "Add a player" : "What should we call you?", null, async d => { const u = await DB.newPlayer(d); DB.use(u); }));
+}
+
+/* ---------- router ---------- */
+function render() {
+  const r = location.hash.slice(1) || "/";
+  if (ui.busy && (r.startsWith("/play/") || r === "/local")) return;
+  ui.busy = false; clearInterval(ui.tick); ui.pick = null;
+  if (r !== ui.lastRoute) { ui.lastRoute = r; window.scrollTo(0, 0); }
+  if (!user) { document.body.classList.remove("withtabs"); return DB.mode === "local" ? renderWho() : renderAuth(); }
+  if (denied) { document.body.classList.remove("withtabs"); return renderPrivate(); }
+  if (!playersLoaded) { document.body.classList.remove("withtabs"); return mount(h("header", { class: "titlepage" }, h("div", { class: "kicker" }, "Trivia Duel"), h("h1", {}, "Loading"))); }
+  if (!players[user.uid]) { document.body.classList.remove("withtabs"); return renderNewPlayer(); }
+  if (r.startsWith("/play/")) { document.body.classList.remove("withtabs"); return renderPlay(r.slice(6)); }
+  if (r === "/local") return renderLocal();
+  document.body.classList.add("withtabs"); drawTabs(r);
+  if (r.startsWith("/duel/")) return renderDuel(r.slice(6));
+  if (r === "/duels") return renderDuels();
+  if (r === "/us") return renderUs();
+  if (r === "/me") return renderMe();
+  return renderHome();
+}
+function go(path) { if (location.hash.slice(1) === path) render(); else location.hash = path; }
+window.addEventListener("hashchange", () => { if (ui.busy) { ui.busy = false; clearInterval(ui.tick); ui.pick = null; } render(); });
+let rT; const soon = () => { clearTimeout(rT); rT = setTimeout(() => { if (!ui.busy) render(); }, 30); };
+function subscribe() {
+  unsubs.forEach(f => { try { f?.(); } catch (e) {} }); unsubs = []; matches = []; qs = []; denied = false; playersLoaded = false;
+  if (DB.mode === "local") unsubs.push(DB.watchPlayers(p => { players = p; playersLoaded = true; soon(); }));
+  if (!user) return;
+  if (DB.mode !== "local") unsubs.push(DB.watchPlayers(p => { players = p; playersLoaded = true; soon(); }));
+  unsubs.push(DB.watchMatches(user.uid, m => { matches = m; soon(); }), DB.watchQs(q => { qs = q; soon(); }));
+}
+
+/* ---------- boot ---------- */
+const GIFT_LINK = /(^|&)laura(=|&|$)/.test(location.search.slice(1));
+if (GIFT_LINK && !store.get("duel-gift-seen", false) && !window.giftIsStandalone()) window.openGift({ onDone: () => store.set("duel-gift-seen", true) });
+(async () => {
+  try { DB = FIREBASE_CONFIG ? await firebaseAdapter(FIREBASE_CONFIG) : localAdapter(); }
+  catch (e) { DB = localAdapter(); setTimeout(() => toast("Sync is unreachable, playing on this phone only"), 500); }
+  await DB.init();
+  user = DB.user();
+  DB.onAuth(u => { const was = user?.uid; user = u; if (was !== u?.uid) { subscribe(); render(); } });
+  subscribe(); render();
+})();
+
+/* ---------- pull down to update ---------- */
+(() => {
+  const ind = h("div", { class: "ptr", "aria-hidden": "true" }, h("span", {}, "↻")); document.body.append(ind);
+  let y0 = null, dy = 0, busy = false;
+  const ready = () => !busy && !ui.busy && window.scrollY <= 0 && !document.querySelector(".scrim");
+  addEventListener("touchstart", e => { y0 = ready() && e.touches.length === 1 ? e.touches[0].clientY : null; dy = 0; ind.style.transition = "none"; }, { passive: true });
+  addEventListener("touchmove", e => { if (y0 == null) return; dy = e.touches[0].clientY - y0; if (dy <= 0 || window.scrollY > 0) { ind.style.transform = "translate(-50%,-70px)"; return; } const d = Math.min(dy * 0.5, 90); ind.style.transform = "translate(-50%," + (d - 60) + "px)"; ind.firstChild.style.transform = "rotate(" + dy * 2 + "deg)"; ind.style.opacity = Math.min(1, dy / 120); }, { passive: true });
+  addEventListener("touchend", async () => {
+    if (y0 == null) return; y0 = null; ind.style.transition = "transform .2s ease";
+    if (dy < 140 || window.scrollY > 0) { ind.style.transform = "translate(-50%,-70px)"; return; }
+    busy = true; ind.style.transform = "translate(-50%,24px)"; ind.firstChild.style.transform = ""; ind.classList.add("spin");
+    try { const reg = await navigator.serviceWorker?.getRegistration(); await reg?.update(); } catch (e) {}
+    setTimeout(() => location.reload(), 300);
+  });
+})();
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) navigator.serviceWorker.register("sw.js").catch(() => {});
+</script>
+</body>
+</html>
